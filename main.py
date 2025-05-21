@@ -9,7 +9,8 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-client = OpenAI(api_key="sk-proj-wxZoZ5Y1I8QA0sUy9kj_ie2fxg4YzFxfImRPV")
+# استخدام المفتاح من متغير بيئة آمن
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 rubric_keywords = {
     "التخطيط": ["خطة", "تخطيط", "أهداف"],
