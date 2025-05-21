@@ -1,4 +1,4 @@
 flask
 pillow
 pytesseract
-openai
+openai>=1.0.0
