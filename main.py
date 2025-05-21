@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 from PIL import Image
 import pytesseract
 import os
-import openai
+from openai import OpenAI
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
