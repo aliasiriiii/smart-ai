@@ -1,76 +1,58 @@
-
 from flask import Flask, render_template, request
 from PIL import Image
 import pytesseract
 import os
 import openai
 
-from rubric_keywords import rubric_keywords
-
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# ربط مفتاح OpenAI من متغير البيئة
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# مفتاح OpenAI مدموج مباشرة
+openai.api_key = "sk-proj-wxZoZ5Y1I8QA0sUy9kj_ie2fxg4YzFxfImRPV"
 
-def analyze_with_keywords(text):
-    result = []
-    total_score = 0
-    for item in rubric_keywords:
-        matched = sum(1 for kw in item["keywords"] if kw in text)
-        score = min(matched, 2)
-        percent = round((score / 2) * 5, 1)
-        note = "العنصر غير ظاهر" if score == 0 else "محقق بدرجة عالية" if score == 2 else "محقق جزئياً"
-        result.append({
-            "item": item["item"],
-            "score": score,
-            "weight": item["weight"],
-            "percent": percent,
-            "note": note
-        })
-        total_score += percent
-    final_score = round(total_score / len(rubric_keywords), 2)
-    return result, final_score
+def analyze_with_gpt(text):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "أنت أداة تقييم ذكية لتحليل الشواهد التعليمية. حلل الشاهد التالي بناءً على عناصر الأداء التربوي، وقدم تقييمًا ذكيًا مفصلًا يشمل ملاحظات وتوصيات."},
+                {"role": "user", "content": text}
+            ]
+        )
+        return response.choices[0].message["content"]
+    except Exception as e:
+        return f"حدث خطأ أثناء التحليل: {str(e)}"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    result = []
-    grade = None
-    gpt_result = ""
+    result = ""
+    teacher_name = ""
+    school_name = ""
+    job_title = ""
+
     if request.method == 'POST':
-        text = ""
-        file = request.files.get('image')
-        if file and file.filename:
-            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(path)
-            text = pytesseract.image_to_string(Image.open(path), lang='ara')
-        else:
-            text = request.form.get('shahid', '')
+        teacher_name = request.form['teacher_name']
+        school_name = request.form['school_name']
+        job_title = request.form['job_title']
+        text = request.form.get('shahid', '')
 
-        result, grade = analyze_with_keywords(text)
+        if 'image' in request.files:
+            image_file = request.files['image']
+            if image_file and image_file.filename != '':
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
+                image_file.save(image_path)
+                img = Image.open(image_path)
+                extracted_text = pytesseract.image_to_string(img, lang='ara')
+                text += "\n" + extracted_text
 
-        # إرسال النص إلى GPT للتحليل
-        if text.strip():
-            prompt = f"""قيّم الشاهد التالي تربويًا وفق 11 عنصرًا. لكل عنصر:
-- درجة من 5
-- ملاحظة مختصرة
-ثم احسب التقدير النهائي بدقة.
+        result = analyze_with_gpt(text)
 
-النص:
-{text}"""
-            try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3
-                )
-                gpt_result = response['choices'][0]['message']['content']
-            except Exception as e:
-                gpt_result = f"حدث خطأ أثناء الاتصال بـ OpenAI: {str(e)}"
-
-    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
+    return render_template('index.html', result=result,
+                           teacher_name=teacher_name,
+                           school_name=school_name,
+                           job_title=job_title)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(debug=True)
