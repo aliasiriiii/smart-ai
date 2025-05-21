@@ -9,7 +9,7 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-openai.api_key = "sk-proj-wxZoZ5Y1I8QA0sUy9kj_ie2fxg4YzFxfImRPV"
+client = OpenAI(api_key="sk-proj-wxZoZ5Y1I8QA0sUy9kj_ie2fxg4YzFxfImRPV")
 
 rubric_keywords = {
     "التخطيط": ["خطة", "تخطيط", "أهداف"],
@@ -47,14 +47,14 @@ def analyze_with_keywords(text):
 
 def analyze_with_gpt(text):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
+        response = client.chat.completions.create(
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "أنت أداة تقييم ذكية لتحليل الشواهد التعليمية. حلل الشاهد التالي بناءً على عناصر الأداء التربوي، وقدم تقييمًا ذكيًا مفصلًا يشمل ملاحظات وتوصيات."},
                 {"role": "user", "content": text}
             ]
         )
-        return response.choices[0].message["content"]
+        return response.choices[0].message.content
     except Exception as e:
         return f"حدث خطأ أثناء التحليل: {str(e)}"
 
