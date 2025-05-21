@@ -3,12 +3,17 @@ from flask import Flask, render_template, request
 from PIL import Image
 import pytesseract
 import os
+import openai
+
 from rubric_keywords import rubric_keywords
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ربط مفتاح OpenAI من متغير البيئة
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def analyze_with_keywords(text):
     result = []
@@ -33,8 +38,9 @@ def analyze_with_keywords(text):
 def index():
     result = []
     grade = None
-    text = ""
+    gpt_result = ""
     if request.method == 'POST':
+        text = ""
         file = request.files.get('image')
         if file and file.filename:
             path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
@@ -45,7 +51,26 @@ def index():
 
         result, grade = analyze_with_keywords(text)
 
-    return render_template("index.html", result=result, grade=grade)
+        # إرسال النص إلى GPT للتحليل
+        if text.strip():
+            prompt = f"""قيّم الشاهد التالي تربويًا وفق 11 عنصرًا. لكل عنصر:
+- درجة من 5
+- ملاحظة مختصرة
+ثم احسب التقدير النهائي بدقة.
+
+النص:
+{text}"""
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3
+                )
+                gpt_result = response['choices'][0]['message']['content']
+            except Exception as e:
+                gpt_result = f"حدث خطأ أثناء الاتصال بـ OpenAI: {str(e)}"
+
+    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
