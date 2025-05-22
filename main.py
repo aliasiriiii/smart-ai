@@ -5,7 +5,7 @@ import os
 
 app = Flask(__name__)
 
-# إعداد عميل OpenAI الرسمي
+# إعداد عميل OpenAI الجديد بعد الإصدار 1.0+
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/')
@@ -17,7 +17,6 @@ def analyze_text():
     input_text = request.form['input_text']
 
     try:
-        # إرسال النص إلى GPT
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -28,14 +27,9 @@ def analyze_text():
                 {"role": "user", "content": input_text}
             ]
         )
-
         result = response.choices[0].message.content
-
-        # إزالة الرموز المخفية + معالجة الترميز العربي
-        cleaned_result = result.replace('\u200f', '').encode('utf-8').decode('utf-8')
-
+        cleaned_result = result.replace('\u200f', '')  # تنظيف الرموز المخفية
         return render_template('index.html', result=cleaned_result)
-
     except Exception as e:
         return render_template('index.html', result=f"حدث خطأ: {str(e)}")
 
