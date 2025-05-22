@@ -1,17 +1,13 @@
-from flask import Flask, equest
+from flask import Flask, render_template, request
 from PIL import Image
 import pytesseract
 import os
-import openai
 from rubric_keywords import rubric_keywords
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# ضبط مفتاح OpenAI من متغير البيئة
-openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 def analyze_with_keywords(text):
     result = []
@@ -36,7 +32,6 @@ def analyze_with_keywords(text):
 def index():
     result = []
     grade = None
-    gpt_result = ""
     if request.method == 'POST':
         text = ""
         file = request.files.get('image')
@@ -48,20 +43,8 @@ def index():
             text = request.form.get('shahid', '')
 
         result, grade = analyze_with_keywords(text)
-        
-        # تحليل GPT
-        prompt = f"""قيّم هذا الشاهد التعليمي وفق 11 عنصر تربوي، لكل عنصر:
-- درجة من 5
-- ملاحظة
-- ثم احسب التقدير النهائي\n\nالنص:\n{text}"""
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )
-        gpt_result = response['choices'][0]['message']['content']
 
-    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
+    return render_template("index.html", result=result, grade=grade)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
