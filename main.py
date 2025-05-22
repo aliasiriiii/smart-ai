@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request
 import openai
 import os
 
 app = Flask(__name__)
 
-# إعداد عميل OpenAI الجديد بعد الإصدار 1.0+
+# إعداد عميل OpenAI بالطريقة الجديدة
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/')
@@ -20,16 +19,12 @@ def analyze_text():
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {
-                    "role": "system",
-                    "content": "أنت محلل تربوي، حلل النص التالي وفق 11 عنصرًا تربويًا مع تقييم من 5 وملاحظات وتوصيات."
-                },
+                {"role": "system", "content": "أنت محلل تربوي، حلل النص التالي وفق 11 عنصرًا تربويًا مع إعطاء درجة من 5 وملاحظات وتوصيات."},
                 {"role": "user", "content": input_text}
             ]
         )
         result = response.choices[0].message.content
-        cleaned_result = result.replace('\u200f', '')  # تنظيف الرموز المخفية
-        return render_template('index.html', result=cleaned_result)
+        return render_template('index.html', result=result)
     except Exception as e:
         return render_template('index.html', result=f"حدث خطأ: {str(e)}")
 
