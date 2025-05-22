@@ -10,8 +10,8 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# مفتاح OpenAI يؤخذ من البيئة
-client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# ضبط مفتاح OpenAI من متغير البيئة
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 def analyze_with_keywords(text):
     result = []
@@ -54,12 +54,12 @@ def index():
 - درجة من 5
 - ملاحظة
 - ثم احسب التقدير النهائي\n\nالنص:\n{text}"""
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
-        gpt_result = response.choices[0].message.content
+        gpt_result = response['choices'][0]['message']['content']
 
     return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
 
