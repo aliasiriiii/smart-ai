@@ -1,32 +1,67 @@
 from flask import Flask, render_template, request
-import openai
+from PIL import Image
+import pytesseract
 import os
+import openai
+from rubric_keywords import rubric_keywords
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# إعداد عميل OpenAI بالطريقة الجديدة
+# مفتاح OpenAI يؤخذ من البيئة
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-@app.route('/')
+def analyze_with_keywords(text):
+    result = []
+    total_score = 0
+    for item in rubric_keywords:
+        matched = sum(1 for kw in item["keywords"] if kw in text)
+        score = min(matched, 2)
+        percent = round((score / 2) * 5, 1)
+        note = "العنصر غير ظاهر" if score == 0 else "محقق بدرجة عالية" if score == 2 else "محقق جزئياً"
+        result.append({
+            "item": item["item"],
+            "score": score,
+            "weight": item["weight"],
+            "percent": percent,
+            "note": note
+        })
+        total_score += percent
+    final_score = round(total_score / len(rubric_keywords), 2)
+    return result, final_score
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    result = []
+    grade = None
+    gpt_result = ""
+    if request.method == 'POST':
+        text = ""
+        file = request.files.get('image')
+        if file and file.filename:
+            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(path)
+            text = pytesseract.image_to_string(Image.open(path), lang='ara')
+        else:
+            text = request.form.get('shahid', '')
 
-@app.route('/analyze_text', methods=['POST'])
-def analyze_text():
-    input_text = request.form['input_text']
-
-    try:
+        result, grade = analyze_with_keywords(text)
+        
+        # تحليل GPT
+        prompt = f"""قيّم هذا الشاهد التعليمي وفق 11 عنصر تربوي، لكل عنصر:
+- درجة من 5
+- ملاحظة
+- ثم احسب التقدير النهائي\n\nالنص:\n{text}"""
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "system", "content": "أنت محلل تربوي، حلل النص التالي وفق 11 عنصرًا تربويًا مع إعطاء درجة من 5 وملاحظات وتوصيات."},
-                {"role": "user", "content": input_text}
-            ]
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
         )
-        result = response.choices[0].message.content
-        return render_template('index.html', result=result)
-    except Exception as e:
-        return render_template('index.html', result=f"حدث خطأ: {str(e)}")
+        gpt_result = response.choices[0].message.content
+
+    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host='0.0.0.0', port=8080)
