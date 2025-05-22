@@ -1,90 +1,23 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>منصة التقييم الذكي لشواهد المعلمين</title>
-    <style>
-        body { font-family: Tahoma, sans-serif; background: #f5f5f5; padding: 30px; direction: rtl; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px #ccc; max-width: 900px; margin: auto; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input[type="text"], textarea { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; margin-top: 5px; }
-        input[type="file"] { margin-top: 10px; }
-        input[type="submit"], button { margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-        th { background-color: #3498db; color: white; }
-        .result-section { background: #eef; padding: 20px; border-radius: 10px; margin-top: 30px; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .footer { margin-top: 20px; text-align: center; color: #555; }
-    </style>
+    <title>منصة التقييم الذكي</title>
+    <meta charset="utf-8">
 </head>
-<body>
-    <div class="container">
-        <h2 class="header">منصة التقييم الذكي لشواهد المعلمين</h2>
+<body style="font-family: Arial; direction: rtl; text-align: center;">
+    <h1>منصة التقييم الذكي</h1>
+    <p>تصميم وابتكار: علي عسيري – ثانوية الظهران</p>
 
-        <form method="POST" enctype="multipart/form-data">
-            <label>اسم المعلم:</label>
-            <input type="text" name="teacher_name" required>
+    <form method="POST" action="/analyze_text">
+        <textarea name="input_text" rows="10" cols="60" placeholder="أدخل الشاهد التربوي هنا..." required></textarea><br><br>
+        <button type="submit">تحليل النص</button>
+    </form>
 
-            <label>اسم المدرسة:</label>
-            <input type="text" name="school_name" required>
-
-            <label>التخصص / المسمى الوظيفي:</label>
-            <input type="text" name="job_title" required>
-
-            <label>نص الشاهد (اختياري):</label>
-            <textarea name="shahid" rows="5" placeholder="اكتب الشاهد هنا إذا لم يكن لديك صورة"></textarea>
-
-            <label>أو ارفع صورة تحتوي على الشاهد:</label>
-            <input type="file" name="image" accept="image/*">
-
-            <input type="submit" value="تحليل الشاهد">
-        </form>
-
-        {% if result %}
-        <div class="result-section" id="resultBox">
-            <h3>نتيجة التقييم:</h3>
-            <p><strong>اسم المعلم:</strong> {{ teacher_name }}</p>
-            <p><strong>اسم المدرسة:</strong> {{ school_name }}</p>
-            <p><strong>التخصص / المسمى:</strong> {{ job_title }}</p>
-
-            <hr>
-
-            {% if keyword_result %}
-            <h4>التحليل الرقمي (الكلمات المفتاحية):</h4>
-            <table>
-                <tr>
-                    <th>العنصر</th>
-                    <th>الدرجة (من 5)</th>
-                    <th>الوزن (%)</th>
-                    <th>التقدير المقنن</th>
-                    <th>الملاحظة</th>
-                </tr>
-                {% for row in keyword_result %}
-                <tr>
-                    <td>{{ row.item }}</td>
-                    <td>{{ row.score }}</td>
-                    <td>{{ row.weight }}</td>
-                    <td>{{ row.percent }}</td>
-                    <td>{{ row.note }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            <p><strong>المجموع النهائي: {{ grade }} / 5</strong></p>
-            {% endif %}
-
-            {% if gpt_result %}
-            <h4>تحليل الذكاء الاصطناعي (GPT):</h4>
-            <pre>{{ gpt_result }}</pre>
-            {% endif %}
-
-            <button onclick="window.print()">طباعة النتيجة</button>
+    {% if result %}
+        <h2>نتائج التحليل:</h2>
+        <div style="border: 1px solid #ccc; padding: 20px; margin: 20px;">
+            <pre>{{ result }}</pre>
         </div>
-        {% endif %}
-
-        <div class="footer">
-            <p>ملاحظة: هذه المنصة تجريبية وتم اختبارها من قبل الأستاذ علي عسيري والذكاء الاصطناعي، ويتم تطويرها تدريجيًا.</p>
-        </div>
-    </div>
+    {% endif %}
 </body>
 </html>
