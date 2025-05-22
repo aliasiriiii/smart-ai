@@ -4,8 +4,8 @@ import os
 
 app = Flask(__name__)
 
-# استخدام مفتاح OpenAI من البيئة
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+# إعداد عميل OpenAI الجديد حسب الإصدار 1.0+
+client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route('/')
 def index():
@@ -16,14 +16,14 @@ def analyze_text():
     input_text = request.form['input_text']
 
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "حلل هذا الشاهد التربوي وفق 11 عنصراً تربوياً وأعطِ درجة من 5 لكل عنصر مع ملاحظات وتوصيات."},
+                {"role": "system", "content": "أنت محلل تربوي، حلل النص التعليمي التالي وفق 11 عنصرًا تربويًا مع تقييم من 5 وملاحظات ذكية وتوصيات."},
                 {"role": "user", "content": input_text}
             ]
         )
-        result = response['choices'][0]['message']['content']
+        result = response.choices[0].message.content
         return render_template('index.html', result=result)
     except Exception as e:
         return render_template('index.html', result=f"حدث خطأ: {str(e)}")
