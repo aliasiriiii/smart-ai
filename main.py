@@ -1,126 +1,32 @@
 from flask import Flask, render_template, request
-from PIL import Image
-import pytesseract
+import openai
 import os
-from openai import OpenAI
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# استخدام المفتاح من متغير بيئة آمن
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# استخدام مفتاح OpenAI من البيئة
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-rubric_keywords = {
-    "التخطيط": ["خطة", "تخطيط", "أهداف"],
-    "استراتيجيات التدريس": ["استراتيجية", "تعلم تعاوني", "عصف ذهني"],
-    "المحتوى العلمي": ["معلومة", "شرح", "نظرية", "تجربة"],
-    "الوسائل التعليمية": ["وسيلة", "لوحة", "مجسم", "عرض"],
-    "التقنية": ["بوربوينت", "منصة", "كلاسيرا", "تيمز", "عالمية", "الكترونية"],
-    "الأنشطة الصفية": ["نشاط", "تمرين", "مجموعة", "بطاقة"],
-    "إدارة الصف": ["ضبط", "تنظيم", "هدوء", "مشاركة"],
-    "القياس والتقويم": ["اختبار", "واجب", "تقييم", "عرض", "تحصيل"],
-    "الرعاية الطلابية": ["مراعاة", "فروق", "احتياجات", "تحفيز"],
-    "التنمية المهنية": ["دورة", "تدريب", "تطوير", "ملتقى", "شهادة"],
-    "التفاعل المجتمعي": ["ولي", "مبادرة", "شراكة", "مجتمع", "تواصل"]
-}
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-def analyze_with_keywords(text):
-    results = []
-    total_score = 0
-    for item, keywords in rubric_keywords.items():
-        matches = sum(1 for word in keywords if word in text)
-        score = min(matches, 2)
-        weight = 100 / len(rubric_keywords)
-        percent = round((score / 5) * 100, 1)
-        note = "العنصر ظاهر" if score > 0 else "العنصر غير ظاهر"
-        results.append({
-            "item": item,
-            "score": score,
-            "weight": f"{weight:.1f}%",
-            "percent": f"{percent}%",
-            "note": note
-        })
-        total_score += score
-    final_grade = round(total_score / len(rubric_keywords), 2)
-    return results, final_grade
+@app.route('/analyze_text', methods=['POST'])
+def analyze_text():
+    input_text = request.form['input_text']
 
-def analyze_with_gpt(text):
     try:
-        prompt = f"""النص التالي مأخوذ من وثيقة أو شهادة. قم بتحليله، وإذا كان يحتوي على شواهد تعليمية أو تطوير مهني أو تطبيقات تقنية أو مشاركة مجتمعية، فحدد العنصر التربوي المناسب لها من عناصر الأداء التربوي التالية:
-- التخطيط
-- استراتيجيات التدريس
-- المحتوى العلمي
-- الوسائل التعليمية
-- التقنية
-- الأنشطة الصفية
-- إدارة الصف
-- القياس والتقويم
-- الرعاية الطلابية
-- التنمية المهنية
-- التفاعل المجتمعي
-
-وصف كل عنصر ظاهر وأين تم ذكره في النص، وإذا كان لا يوجد شاهد، اذكر أن العنصر غير ظاهر.
-
-النص:
-{text}
-"""
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
             messages=[
-                {"role": "system", "content": "أنت أداة تقييم ذكية تقرأ الشهادات التعليمية وتربطها بعناصر الأداء التربوي وتعطي ملاحظات دقيقة."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "حلل هذا الشاهد التربوي وفق 11 عنصراً تربوياً وأعطِ درجة من 5 لكل عنصر مع ملاحظات وتوصيات."},
+                {"role": "user", "content": input_text}
             ]
         )
-        return response.choices[0].message.content
+        result = response['choices'][0]['message']['content']
+        return render_template('index.html', result=result)
     except Exception as e:
-        return f"حدث خطأ أثناء التحليل: {str(e)}"
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = False
-    teacher_name = ""
-    school_name = ""
-    job_title = ""
-    keyword_result = []
-    final_score = 0
-    gpt_result = ""
-
-    if request.method == 'POST':
-        teacher_name = request.form['teacher_name']
-        school_name = request.form['school_name']
-        job_title = request.form['job_title']
-        text = request.form.get('shahid', '')
-
-        if 'image' in request.files:
-            image_file = request.files['image']
-            if image_file and image_file.filename != '':
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_file.filename)
-                image_file.save(image_path)
-                img = Image.open(image_path)
-                extracted_text = pytesseract.image_to_string(img, lang='ara')
-                print("النص المستخرج من الصورة:", extracted_text)
-                text += "\n" + extracted_text
-
-        if len(text.strip()) < 5:
-            gpt_result = "لم يتم العثور على نص واضح لتحليله من الصورة أو الإدخال النصي."
-        else:
-            keyword_result, final_score = analyze_with_keywords(text)
-            gpt_result = analyze_with_gpt(text)
-            result = True
-
-    return render_template(
-        'index.html',
-        result=result,
-        teacher_name=teacher_name,
-        school_name=school_name,
-        job_title=job_title,
-        keyword_result=keyword_result,
-        grade=final_score,
-        gpt_result=gpt_result
-    )
+        return render_template('index.html', result=f"حدث خطأ: {str(e)}")
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True)
