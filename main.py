@@ -83,3 +83,7 @@ def index():
 
     return render_template("index.html", gpt_result=gpt_result,
                            teacher_name=teacher_name, job_title=job_title, school=school)
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
