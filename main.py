@@ -36,10 +36,10 @@ def extract_text_from_pdf(pdf_path):
 
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
-    scores = re.findall(r'<td>([1-5])<\/td>\s*<td>(\d+)%<\/td>', table_html)
+    scores = re.findall(r'<td>(\d+) من 5</td>\s*<td>(\d+)%</td>', table_html)
     total_score = 0
     if len(scores) == len(weights):
-        for i, (_, percent_str) in enumerate(scores):
+        for i, (score_str, percent_str) in enumerate(scores):
             percent = int(percent_str)
             weight = weights[i]
             total_score += (percent * weight) / 100
