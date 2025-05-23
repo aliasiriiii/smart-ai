@@ -3,3 +3,4 @@ openai>=1.0.0
 requests
 pillow
 PyMuPDF
+pdf2image
