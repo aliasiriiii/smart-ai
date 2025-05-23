@@ -72,30 +72,46 @@
             color: #666;
         }
     </style>
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
 </head>
 <body>
     <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
     <form method="POST" enctype="multipart/form-data">
         <label>اسم المعلم (اختياري):</label>
-        <input type="text" name="teacher_name">
+        <input type="text" name="teacher_name" value="{{ teacher_name }}">
+
         <label>المدرسة (اختياري):</label>
-        <input type="text" name="school">
+        <input type="text" name="school" value="{{ school }}">
+
         <label>المسمى الوظيفي (اختياري):</label>
-        <input type="text" name="job_title">
+        <input type="text" name="job_title" value="{{ job_title }}">
+
         <label>اسم المدير (اختياري):</label>
-        <input type="text" name="principal_name">
+        <input type="text" name="principal_name" value="{{ principal_name }}">
+
         <label>نص الشاهد:</label>
         <textarea name="shahid" rows="5"></textarea>
+
         <label>أو ارفع صورة:</label>
         <input type="file" name="image">
+
         <label>أو ارفع ملف PDF:</label>
         <input type="file" name="pdf_file">
-        <button type="submit">تحليل الشاهد</button>
+
+        <button type="submit" onclick="showLoading()">تحليل الشاهد</button>
     </form>
+
+    <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
+        جاري التحليل... يرجى الانتظار
+    </div>
 
     {% if gpt_result %}
     <div class="no-print">
-        <h2>نتيجة تحليل الذكاء الاصطناعي</h2>
+        <h2>نتيجة التحليل الذكي (GPT)</h2>
         <div style="white-space: pre-wrap;">{{ gpt_result }}</div>
     </div>
     {% endif %}
@@ -106,4 +122,4 @@
         <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
     </div>
 </body>
-</html>
+</html
