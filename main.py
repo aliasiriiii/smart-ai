@@ -2,7 +2,6 @@ from flask import Flask, render_template, request
 import os
 import requests
 import openai
-from rubric_keywords import rubric_keywords
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -10,28 +9,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-def analyze_with_keywords(text):
-    result = []
-    for item in rubric_keywords:
-        matched = sum(1 for kw in item["keywords"] if kw in text)
-        score = 2 if matched >= 2 else 1 if matched == 1 else 0
-        percent = round((score / 2) * item["weight"], 2)
-        note = "غير محقق" if score == 0 else "محقق جزئياً" if score == 1 else "محقق تماماً"
-        result.append({
-            "item": item["item"],
-            "weight": item["weight"],
-            "score": score,
-            "percent": percent,
-            "note": note
-        })
-    total_score = 0
-    total_weight = 0
-    for r in result:
-        total_score += r["score"] * r["weight"]
-        total_weight += r["weight"]
-    final_score = round(total_score / total_weight, 2) if total_weight > 0 else 0
-    return result, final_score
 
 def extract_text_from_image_ocr_space(image_path):
     api_key = "helloworld"
@@ -46,8 +23,6 @@ def extract_text_from_image_ocr_space(image_path):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    result = []
-    grade = None
     gpt_result = ""
     input_text = ""
     teacher_name = request.form.get('teacher_name', '')
@@ -63,16 +38,39 @@ def index():
         else:
             input_text = request.form.get('shahid', '')
 
-        result, grade = analyze_with_keywords(input_text)
+        prompt = f"""
+أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على شواهد مكتوبة. مهمتك تحليل الشاهد أدناه وفق 11 عنصرًا معتمدة من وزارة التعليم.
 
-        prompt = f"""حلل الشاهد التربوي التالي باستخدام 11 عنصرًا، لكل عنصر:
-- درجة من 5
-- ملاحظة
-- نسبة مئوية مبنية على وزنه الموضح
-ثم احسب التقدير النهائي.
+لكل عنصر:
+- إذا ذُكر أو تمت الإشارة إليه بأي طريقة → اكتب (نعم) وامنحه الدرجة الكاملة (2).
+- إذا لم يُذكر → اكتب (لا) وامنحه (0).
+- احسب النسبة وفق وزن كل عنصر.
 
-النص:\n{input_text}
+**أخرج النتيجة في جدول منسق** يشمل:
+- اسم العنصر
+- تحقق العنصر (نعم / لا)
+- الدرجة من 2
+- النسبة المحققة
+
+**ثم أضف في الأسفل ملاحظات نصية تشرح لماذا اعتبرت كل عنصر (متحقق)**، مع ذكر العبارات الدالة التي وجدتها في الشاهد، إن وُجدت.
+
+العناصر هي:
+1. أداء الواجبات الوظيفية (10%)
+2. التفاعل مع المجتمع المحلي (10%)
+3. التفاعل مع أولياء الأمور (10%)
+4. تنويع استراتيجيات التدريس (10%)
+5. تحسين نواتج المتعلمين (10%)
+6. إعداد وتنفيذ خطة الدرس (10%)
+7. توظيف تقنيات ووسائل التعليم المناسبة (10%)
+8. تهيئة البيئة التعليمية (5%)
+9. ضبط سلوك الطلاب (5%)
+10. تحليل نتائج المتعلمين وتشخيص مستوياتهم (10%)
+11. تنويع أساليب التقويم (10%)
+
+نص الشاهد:
+{input_text}
 """
+
         try:
             response = client.chat.completions.create(
                 model="gpt-4",
@@ -83,8 +81,5 @@ def index():
         except Exception as e:
             gpt_result = f"حدث خطأ: {str(e)}"
 
-    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result,
+    return render_template("index.html", gpt_result=gpt_result,
                            teacher_name=teacher_name, job_title=job_title, school=school)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
