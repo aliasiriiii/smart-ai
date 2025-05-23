@@ -13,7 +13,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # استبدلها بمفتاحك من OCR.space
+    api_key = "helloworld"  # غيّرها لمفتاحك من OCR.space
     with open(image_path, 'rb') as f:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -61,9 +61,17 @@ def index():
 
         if input_text.strip():
             prompt = f"""
-أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة من وزارة التعليم.
+أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة.
+مهمتك تحليل الشاهد التالي باستخدام عناصر وزارة التعليم، ثم:
 
-ملاحظة مهمة: لا تذكر أسماء أشخاص (مثل المعلم/المعلمة) ما لم تكن واردة صراحة في الشاهد.
+1. أخرج أولاً جدول HTML منسق باستخدام <table><tr><th><td> يحتوي على:
+   - اسم العنصر
+   - درجة التحقق (1، 4، أو 5)
+   - النسبة المحققة لكل عنصر
+2. بعد الجدول مباشرة، أضف سطرين:
+   - الدرجة النهائية من 5:
+   - النسبة الإجمالية المحققة:
+3. ثم اكتب ملاحظات مفصلة لكل عنصر، ولا تذكر أي أسماء وهمية أو غير مذكورة في الشاهد.
 
 نص الشاهد:
 {input_text}
@@ -77,7 +85,7 @@ def index():
                 )
                 gpt_result = response.choices[0].message.content
 
-                # مؤقتًا، قيم تجريبية
+                # تقدير تجريبي إلى أن يتم التحليل الذكي مستقبلاً
                 final_score = 5
                 final_percentage = 92
 
