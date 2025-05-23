@@ -4,6 +4,7 @@ import requests
 import openai
 from pdf2image import convert_from_path
 from PIL import Image
+import re
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -32,6 +33,19 @@ def extract_text_from_pdf(pdf_path):
         text = extract_text_from_image_ocr_space(img_path)
         full_text += text + "\n"
     return full_text
+
+def calculate_final_score_from_table(table_html):
+    weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
+    scores = re.findall(r'<td>([1-5])<\/td>\s*<td>(\d+)%<\/td>', table_html)
+    total_score = 0
+    if len(scores) == len(weights):
+        for i, (_, percent_str) in enumerate(scores):
+            percent = int(percent_str)
+            weight = weights[i]
+            total_score += (percent * weight) / 100
+        final_score_5 = round((total_score / 100) * 5, 2)
+        return f"<div style='margin-top:20px; font-size:18px; color:#2c3e50; background:#fef9e7; padding:15px; border-radius:10px;'><strong>الدرجة النهائية:</strong> {final_score_5} من 5 ({int(total_score)}%)</div>"
+    return ""
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -97,7 +111,9 @@ def index():
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3
             )
-            gpt_result = response.choices[0].message.content
+            content = response.choices[0].message.content
+            final_score_block = calculate_final_score_from_table(content)
+            gpt_result = content + final_score_block
         except Exception as e:
             gpt_result = f"حدث خطأ: {str(e)}"
 
