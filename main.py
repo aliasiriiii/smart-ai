@@ -1,6 +1,4 @@
 from flask import Flask, render_template, request
-from PIL import Image
-import pytesseract
 import os
 import requests
 import openai
@@ -13,10 +11,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-# تحليل يدوي
 def analyze_with_keywords(text):
     result = []
-    total_score = 0
     for item in rubric_keywords:
         matched = sum(1 for kw in item["keywords"] if kw in text)
         score = 2 if matched >= 2 else 1 if matched == 1 else 0
@@ -29,10 +25,14 @@ def analyze_with_keywords(text):
             "percent": percent,
             "note": note
         })
-        total_score += percent
-    return result, round(total_score, 2)
+    total_score = 0
+    total_weight = 0
+    for r in result:
+        total_score += r["score"] * r["weight"]
+        total_weight += r["weight"]
+    final_score = round(total_score / total_weight, 2) if total_weight > 0 else 0
+    return result, final_score
 
-# OCR Space
 def extract_text_from_image_ocr_space(image_path):
     api_key = "helloworld"
     with open(image_path, 'rb') as f:
@@ -73,12 +73,15 @@ def index():
 
 النص:\n{input_text}
 """
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )
-        gpt_result = response.choices[0].message.content
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            gpt_result = response.choices[0].message.content
+        except Exception as e:
+            gpt_result = f"حدث خطأ: {str(e)}"
 
     return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result,
                            teacher_name=teacher_name, job_title=job_title, school=school)
