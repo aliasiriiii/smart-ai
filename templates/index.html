@@ -64,7 +64,12 @@
             color: #666;
         }
         @media print {
-            .no-print { display: none; }
+            .no-print, .gpt-analysis, form, .footer, #loading {
+                display: none !important;
+            }
+            #print-section {
+                display: block;
+            }
         }
     </style>
     <script>
@@ -103,16 +108,16 @@
 
     <!-- نموذج الإدخال -->
     <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-        <label>اسم المعلم (اختياري):</label>
+        <label>اسم المعلم:</label>
         <input type="text" name="teacher_name" value="{{ teacher_name }}">
 
-        <label>المدرسة (اختياري):</label>
+        <label>المدرسة:</label>
         <input type="text" name="school" value="{{ school }}">
 
-        <label>المسمى الوظيفي (اختياري):</label>
+        <label>المسمى الوظيفي:</label>
         <input type="text" name="job_title" value="{{ job_title }}">
 
-        <label>اسم المدير (اختياري):</label>
+        <label>اسم المدير:</label>
         <input type="text" name="principal_name" value="{{ principal_name }}">
 
         <label>نص الشاهد:</label>
@@ -131,6 +136,26 @@
         جاري التحليل... يرجى الانتظار
     </div>
 
+    <!-- جدول النتيجة النهائية للطباعة -->
+    <div id="print-section">
+        <table style="width: 300px; margin: 30px auto; font-size: 18px; border: 2px solid #27ae60;">
+          <tr style="background-color: #27ae60; color: white;">
+            <th>الدرجة النهائية من 5</th>
+            <th>النسبة المئوية</th>
+          </tr>
+          <tr>
+            <td><strong>{{ final_score }}</strong></td>
+            <td><strong>{{ final_percentage }}%</strong></td>
+          </tr>
+        </table>
+
+        <div style="text-align: center; font-size: 18px; margin-top: 30px;">
+            <p><strong>اسم المعلم:</strong> {{ teacher_name }}</p>
+            <p><strong>اسم المدير:</strong> {{ principal_name }}</p>
+            <p><strong>التوقيع:</strong> _______________________</p>
+        </div>
+    </div>
+
     {% if gpt_result %}
     <div class="no-print">
         <h2 style="margin-top: 40px;">نتيجة التحليل الذكي (GPT)</h2>
@@ -142,11 +167,6 @@
         <div style="background:#f0f0f0; padding: 20px; font-size: 16px; border-radius: 10px; text-align: center;">
             <strong>تم التقييم تلقائيًا باستخدام الذكاء الاصطناعي بناءً على الشواهد المقدمة.</strong><br>
             لا يُغني هذا التقييم عن التقييم البشري المباشر من قبل المشرف التربوي أو قائد المدرسة.
-        </div>
-
-        <div style="margin-top: 40px; font-size: 18px;">
-            <strong>اسم المدير:</strong> {{ principal_name }}<br>
-            <strong>التوقيع:</strong> ______________________
         </div>
     </div>
     {% endif %}
