@@ -136,12 +136,8 @@
     {% if gpt_result %}
     <div class="no-print">
         <h2 style="margin-top: 40px;">نتيجة التحليل الذكي (GPT)</h2>
-        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">{{ gpt_result | safe }}</div>
-
-        <hr style="margin: 40px 0;">
-        <div style="font-size: 18px; color: #2c3e50; background: #e8f5e9; padding: 15px; border-radius: 10px;">
-            <strong>التقدير النهائي:</strong> يُحسب بناءً على مجموع النسب المحققة من أصل 100%، ثم يُحول إلى درجة من 5 تلقائيًا.<br>
-            يتم عرض النتيجة في الجدول أعلاه، ويليه التحليل النصي لكل عنصر.
+        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">
+            {{ gpt_result | safe }}
         </div>
     </div>
     {% endif %}
