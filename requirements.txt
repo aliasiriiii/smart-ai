@@ -2,3 +2,4 @@ flask
 pillow
 requests
 openai>=1.0.0
+pytesseract
