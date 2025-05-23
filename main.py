@@ -1,94 +1,67 @@
 from flask import Flask, render_template, request
 import os
-import requests
 import openai
-from pdf2image import convert_from_path
-from PIL import Image
 
 app = Flask(__name__)
+
+# إعداد مجلد الرفع
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# إعداد GPT
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # بدّلها بمفتاحك من ocr.space
-    with open(image_path, 'rb') as f:
-        response = requests.post(
-            'https://api.ocr.space/parse/image',
-            files={'filename': f},
-            data={'apikey': api_key, 'language': 'ara'}
-        )
-    result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
-
-def extract_text_from_pdf(pdf_path):
-    images = convert_from_path(pdf_path)
-    full_text = ""
-    for i, img in enumerate(images):
-        img_path = os.path.join(app.config['UPLOAD_FOLDER'], f"page_{i}.jpg")
-        img.save(img_path, 'JPEG')
-        text = extract_text_from_image_ocr_space(img_path)
-        full_text += text + "\n"
-    return full_text
-
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    gpt_result = ""
-    teacher_name = request.form.get('teacher_name', '')
-    job_title = request.form.get('job_title', '')
-    school = request.form.get('school', '')
-    principal_name = request.form.get('principal_name', '')
-    input_text = ""
+    return render_template('index.html')
 
-    if request.method == 'POST':
-        file = request.files.get('image')
-        pdf_file = request.files.get('pdf_file')
-        if file and file.filename:
-            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(path)
-            input_text = extract_text_from_image_ocr_space(path)
-        elif pdf_file and pdf_file.filename:
-            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_file.filename)
-            pdf_file.save(pdf_path)
-            input_text = extract_text_from_pdf(pdf_path)
-        else:
-            input_text = request.form.get('shahid', '')
+@app.route('/analyze_text', methods=['POST'])
+def analyze_text():
+    input_text = request.form['input_text']
 
-        prompt = f"""
-أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة التالية من وزارة التعليم:
+    # تحليل GPT للنص
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "أنت محلل تربوي، حلل النص التالي وفق 11 عنصرًا تربويًا، أعط درجة من 5 مع ملاحظات وتوصيات."},
+            {"role": "user", "content": input_text}
+        ]
+    )
+    ai_analysis = response.choices[0].message.content
 
-(تم حذف القائمة للتوفير في السطر)
+    # تحليل يدوي تجريبي (قابل للتعديل لاحقًا حسب الكلمات المفتاحية)
+    rubric = [
+        'الأهداف', 'الأنشطة', 'الوسائل', 'التقويم', 'إدارة الصف',
+        'التحفيز', 'تنوع الأساليب', 'المهارات', 'السلوك',
+        'المشاركة', 'التقنية'
+    ]
 
-ملاحظة مهمة: لا تذكر أسماء أشخاص (مثل المعلم/المعلمة) ما لم تكن واردة صراحة في الشاهد.
+    total_score = 0
+    table = []
 
-نص الشاهد:
-{input_text}
-"""
+    for item in rubric:
+        score = 5  # درجة مؤقتة لكل عنصر (يمكن تعديلها لاحقًا)
+        comment = "جيد جدًا"  # ملاحظة مؤقتة
+        total_score += score
+        table.append({
+            'element': item,
+            'score': score,
+            'percentage': score * 20,
+            'comment': comment
+        })
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            gpt_result = response.choices[0].message.content
-        except Exception as e:
-            gpt_result = f"حدث خطأ: {str(e)}"
+    # حساب الدرجة النهائية والنسبة
+    final_score = round(total_score / len(rubric), 2)
+    final_percentage = int((final_score / 5) * 100)
 
-    # افتراضياً حطينا قيمة 5 و 92 للتجربة
-    final_score = 5
-    final_percentage = 92
-
-    return render_template("index.html",
-                           gpt_result=gpt_result,
-                           teacher_name=teacher_name,
-                           job_title=job_title,
-                           school=school,
-                           principal_name=principal_name,
-                           final_score=final_score,
-                           final_percentage=final_percentage)
+    return render_template(
+        'index.html',
+        table=table,
+        ai_analysis=ai_analysis,
+        final_score=final_score,
+        final_percentage=final_percentage
+    )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(debug=True)
