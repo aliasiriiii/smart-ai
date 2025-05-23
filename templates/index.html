@@ -127,21 +127,26 @@
 ‏        <button type="submit">تحليل الشاهد</button>
 ‏    </form>
 
-    <!-- شاشة الانتظار -->
 ‏    <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
         جاري التحليل... يرجى الانتظار
 ‏    </div>
 
-    <!-- النتيجة -->
 ‏    {% if gpt_result %}
 ‏    <div class="no-print">
 ‏        <h2 style="margin-top: 40px;">نتيجة التحليل الذكي (GPT)</h2>
-‏        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">{{ gpt_result | safe }}</div>
+‏        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">
+‏            {{ gpt_result | safe }}
+‏        </div>
 
-‏        <hr style="margin: 40px 0;">
-‏        <div style="font-size: 18px; color: #2c3e50; background: #e8f5e9; padding: 15px; border-radius: 10px;">
-‏            <strong>التقدير النهائي:</strong> يُحسب بناءً على مجموع النسب المحققة من أصل 100%، ثم يُحول إلى درجة من 5 تلقائيًا.<br>
-            يتم عرض النتيجة في الجدول أعلاه، ويليه التحليل النصي لكل عنصر.
+‏        <hr style="margin-top: 40px;">
+‏        <div style="background:#f0f0f0; padding: 20px; font-size: 16px; border-radius: 10px; text-align: center;">
+‏            <strong>تم التقييم تلقائيًا باستخدام الذكاء الاصطناعي بناءً على الشواهد المقدمة.</strong><br>
+            لا يُغني هذا التقييم عن التقييم البشري المباشر من قبل المشرف التربوي أو قائد المدرسة.
+‏        </div>
+
+‏        <div style="margin-top: 40px; font-size: 18px;">
+‏            <strong>اسم المدير:</strong> {{ principal_name }}<br>
+‏            <strong>التوقيع:</strong> ______________________
 ‏        </div>
 ‏    </div>
 ‏    {% endif %}
