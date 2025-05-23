@@ -2,11 +2,13 @@ from flask import Flask, render_template, request
 import os
 import requests
 import openai
+import fitz  # PyMuPDF
+from PIL import Image
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
@@ -19,7 +21,18 @@ def extract_text_from_image_ocr_space(image_path):
             data={'apikey': api_key, 'language': 'ara'}
         )
     result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if result['IsErroredOnProcessing'] == False else ""
+    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
+
+def extract_text_from_pdf(pdf_path):
+    doc = fitz.open(pdf_path)
+    full_text = ""
+    for i, page in enumerate(doc):
+        pix = page.get_pixmap(dpi=200)
+        image_path = os.path.join(UPLOAD_FOLDER, f"page_{i}.png")
+        pix.save(image_path)
+        extracted = extract_text_from_image_ocr_space(image_path)
+        full_text += "\n" + extracted
+    return full_text
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -31,18 +44,23 @@ def index():
     principal_name = request.form.get('principal_name', '').strip()
 
     if request.method == 'POST':
-        file = request.files.get('image')
+        file = request.files.get('image') or request.files.get('pdf_file')
         if file and file.filename:
+            ext = os.path.splitext(file.filename)[1].lower()
             path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(path)
-            input_text = extract_text_from_image_ocr_space(path)
+
+            if ext == '.pdf':
+                input_text = extract_text_from_pdf(path)
+            else:
+                input_text = extract_text_from_image_ocr_space(path)
         else:
             input_text = request.form.get('shahid', '')
 
         name_usage = f"استخدم اسم المعلم في الملاحظات: {teacher_name}." if teacher_name else "لا تستخدم أي أسماء أشخاص. استخدم فقط تعبير 'المعلم'."
 
         prompt = f"""
-أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على شواهد مكتوبة. مهمتك تحليل الشاهد أدناه وفق العناصر الرسمية المعتمدة فقط.
+أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على شواهد مكتوبة أو مصورة. مهمتك تحليل الشاهد أدناه وفق العناصر الرسمية المعتمدة فقط.
 
 لكل عنصر:
 - إذا لم يُذكر شيء يدل عليه → الدرجة = 1 من 5.
@@ -54,43 +72,24 @@ def index():
 - ضبط سلوك الطلاب = 5%
 - باقي العناصر = 10%
 
-اعرض النتيجة بصيغة جدول HTML يحتوي الأعمدة التالية:
+ابدأ فورًا بعرض **جدول HTML منسق وواضح** يحتوي الأعمدة التالية:
 - اسم العنصر
 - تحقق العنصر (نعم / لا)
 - الدرجة من 5
 - النسبة المحققة / الأصلية (مثال: 8% / 10%)
 
-بعد الجدول، أضف:
-- المجموع الكلي للنسب المحققة من 100%
+ثم بعد الجدول مباشرة:
+- اذكر المجموع الكلي للنسب المحققة من 100%
 - الدرجة النهائية من 5
-- ملاحظات تحليلية ذكية بناءً على الشاهد، توضّح سبب تحقق أو عدم تحقق كل عنصر.
+- ملاحظات تحليلية ذكية توضح سبب تحقق أو عدم تحقق كل عنصر.
 
-تأكد من أنك تفسر العبارات التربوية المتنوعة بشكل ذكي.
-حتى لو لم تُذكر الكلمات المطابقة بالضبط لاسم العنصر، فمثلاً:
+مهم:
+- لا تعتبر وجود أسئلة أو محتوى أكاديمي بحد ذاته دليلاً كافيًا على تحقق العناصر، إلا إذا تم ربطه بسياق تربوي مثل: تحليل نتائج، خطة علاجية، استراتيجية، تفاعل.
+- إذا احتوى الشاهد على صور متعددة، مثل استراتيجية، اختبار، وتقنية، فافترض تحقق كل عنصر يرتبط بشكل مباشر بما ورد فقط، ولا تعمم على بقية العناصر غير الظاهرة.
 
-- "تعليق لوحات تعليمية" = تهيئة البيئة التعليمية
-- "وزع شهادات شكر" = ضبط سلوك الطلاب
-- "ملف إنجاز" = تنويع أساليب التقويم
-- "رسائل نصية وتقارير متابعة" = تفاعل مع أولياء الأمور
-- "حللت نتائج الطلاب" = تحليل نتائج وتشخيص
-
-واعتبر العنصر محققًا إذا وُجدت عبارات تدل عليه بشكل مباشر أو غير مباشر، ولا تشترط التطابق الحرفي.
+تأكد من أنك تفسر العبارات التربوية المتنوعة بشكل ذكي، واعتبر العنصر محققًا إذا وُجدت عبارات أو صور تدل عليه بشكل مباشر أو غير مباشر، ولا تشترط التطابق الحرفي.
 
 {name_usage}
-
-**مهم: لا تخرج عن هذه العناصر فقط، ولا تذكر أسماء غير واقعية:**
-
-1. أداء الواجبات الوظيفية (10%)
-2. التفاعل مع المجتمع المحلي (10%)
-3. التفاعل مع أولياء الأمور (10%)
-4. تنويع استراتيجيات التدريس (10%)
-5. تحسين نواتج المتعلمين (10%)
-6. إعداد وتنفيذ خطة الدرس (10%)
-7. توظيف تقنيات ووسائل التعليم المناسبة (10%)
-8. تهيئة البيئة التعليمية (5%)
-9. ضبط سلوك الطلاب (5%)
-10. تحليل نتائج المتعلمين وتشخيص مستوياتهم (10%)
-11. تنويع أساليب التقويم (10%)
 
 نص الشاهد:
 {input_text}
