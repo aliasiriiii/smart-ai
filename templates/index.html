@@ -83,6 +83,8 @@
         <input type="text" name="school" value="{{ school }}">
         <label>المسمى الوظيفي (اختياري):</label>
         <input type="text" name="job_title" value="{{ job_title }}">
+        <label>اسم مدير المدرسة (اختياري):</label>
+        <input type="text" name="principal_name" value="{{ principal_name }}">
         <label>نص الشاهد:</label>
         <textarea name="shahid" rows="5"></textarea>
         <label>أو ارفع صورة:</label>
@@ -93,6 +95,16 @@
     {% if gpt_result %}
         <h2>نتائج التحليل الذكي (GPT)</h2>
         <div>{{ gpt_result | safe }}</div>
+    {% endif %}
+
+    {% if principal_name %}
+        <hr style="margin-top:40px;">
+        <h3>اعتماد الإدارة</h3>
+        <p><strong>تم الاطلاع على نتيجة التقييم من قبل مدير المدرسة:</strong> {{ principal_name }}</p>
+        <p style="margin-top:40px;">
+            ........................................... <br>
+            توقيع المدير / الختم الرسمي
+        </p>
     {% endif %}
 
     <div class="footer">
