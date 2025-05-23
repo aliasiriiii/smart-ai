@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -10,7 +10,7 @@
         label { font-weight: bold; display: block; margin: 10px 0 5px; }
         textarea, input[type=text], input[type=file] { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
         button { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; font-size: 16px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background-color: #2ecc71; color: white; }
         .footer { margin-top: 30px; text-align: center; font-size: 14px; color: #777; }
@@ -47,12 +47,16 @@
             <tr>
                 <th>العنصر التربوي</th>
                 <th>درجة التقييم (من 5)</th>
+                <th>الوزن</th>
+                <th>التقدير (%)</th>
                 <th>الملاحظة</th>
             </tr>
             {% for row in gpt_table %}
-            <tr>
+            <tr style="background-color: {% if row.score == 5 %}#d4edda{% elif row.score == 3 %}#fff3cd{% else %}#f8d7da{% endif %};">
                 <td>{{ row.item }}</td>
                 <td>{{ row.score }}</td>
+                <td>{{ row.weight }}</td>
+                <td>{{ row.percent }}</td>
                 <td>{{ row.note }}</td>
             </tr>
             {% endfor %}
