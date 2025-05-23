@@ -8,21 +8,23 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# إعداد GPT
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+OCR_SPACE_API_KEY = "helloworld"  # استخدم مفتاحك الخاص هنا
 
-# مفتاح OCR.space (استبدله لاحقًا بمفتاحك الخاص)
-OCR_SPACE_API_KEY = "helloworld"
+rubric_weights = {
+    "أداء الواجبات الوظيفية": 10,
+    "التفاعل مع المجتمع المدرسي": 10,
+    "التفاعل مع أولياء الأمور": 10,
+    "تنويع استراتيجيات التدريس": 10,
+    "تحسين نواتج التعلم": 10,
+    "إعداد وتنفيذ الدروس": 10,
+    "توظيف التقنية": 10,
+    "ضبط سلوك الطلاب": 5,
+    "تحليل نتائج المعلمين": 10,
+    "تنوع أساليب التقويم": 10,
+    "تحقيق القيم": 5
+}
 
-# عناصر التقييم التربوي
-elements = [
-    "أداء الواجبات الوظيفية", "التفاعل مع المجتمع المحلي", "التفاعل مع أولياء الأمور",
-    "تنويع استراتيجيات التدريس", "تحسين نواتج المتعلمين", "إعداد وتنفيذ خطة الدرس",
-    "توظيف التقنيات", "تهيئة البيئة التعليمية", "ضبط سلوك الطلاب",
-    "تحليل نتائج المتعلمين", "تنوع أساليب التقويم"
-]
-
-# استخراج النص من الصورة عبر OCR.space
 def extract_text_from_image_ocrspace(image_path, api_key):
     with open(image_path, 'rb') as f:
         response = requests.post(
@@ -35,7 +37,6 @@ def extract_text_from_image_ocrspace(image_path, api_key):
         return ""
     return result['ParsedResults'][0]['ParsedText']
 
-# تحليل رد GPT وتحويله لجدول
 def parse_gpt_response_to_table(gpt_text):
     table = []
     total_score = 0
@@ -45,15 +46,17 @@ def parse_gpt_response_to_table(gpt_text):
             parts = line.split(":")
             item_name = parts[0].strip("1234567890.- ").strip()
             rest = ":".join(parts[1:]).strip()
-            # توزيع الدرجات حسب الملاحظة:
             words_count = len(rest.split())
-            if words_count >= 2:
-                score = 5
-            elif words_count == 1:
-                score = 3
-            else:
-                score = 1
-            table.append({"item": item_name, "score": score, "note": rest})
+            score = 5 if words_count >= 2 else 3 if words_count == 1 else 1
+            weight = rubric_weights.get(item_name, 10)
+            percent = round((score / 5) * 100)
+            table.append({
+                "item": item_name,
+                "score": score,
+                "weight": weight,
+                "percent": percent,
+                "note": rest
+            })
             total_score += score
     final_score = round(total_score / len(table), 2) if table else 0
     return table, final_score
