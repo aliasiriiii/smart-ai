@@ -13,7 +13,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # استبدله بمفتاحك الحقيقي
+    api_key = "helloworld"  # استبدله بمفتاحك من OCR.space
     with open(image_path, 'rb') as f:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -67,17 +67,11 @@ def index():
 - إذا وُجد شاهد واحد فقط → الدرجة = 4 من 5
 - إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
 
-يجب إظهار العناصر كاملة داخل جدول HTML يحتوي على:
-- اسم العنصر
-- درجة التحقق
-- النسبة المحققة حسب الوزن
-
-ثم بعد الجدول:
-- الدرجة النهائية من 5
-- النسبة الإجمالية %
-
-ثم اكتب ملاحظات تحليلية لكل عنصر.
-لا تذكر أي أسماء غير موجودة مثل "المعلمة مريم".
+يرجى تقديم النتائج بتنسيق JSON يحتوي على:
+- قائمة بالعناصر مع اسم العنصر، درجة التحقق، النسبة المحققة حسب الوزن.
+- الدرجة النهائية من 5.
+- النسبة الإجمالية %.
+- ملاحظات تحليلية تفصيلية لكل عنصر.
 
 نص الشاهد:
 {input_text}
@@ -89,11 +83,15 @@ def index():
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3
                 )
-                gpt_result = response.choices[0].message.content
-                # استخراج الدرجة النهائية والنسبة المئوية من gpt_result إذا كانت متاحة
-                # يمكنك استخدام تعبيرات منتظمة (regex) لاستخراج هذه القيم
+                analysis = response.choices[0].message.content
+                # تحويل النص إلى JSON
+                import json
+                analysis_data = json.loads(analysis)
+                gpt_result = analysis_data
+                final_score = analysis_data.get('final_score')
+                final_percentage = analysis_data.get('final_percentage')
             except Exception as e:
-                gpt_result = f"حدث خطأ: {str(e)}"
+                gpt_result = {"error": f"حدث خطأ: {str(e)}"}
 
     return render_template("index.html",
                            gpt_result=gpt_result,
