@@ -1,174 +1,174 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>منصة التقييم الذكي لشواهد المعلمين</title>
-    <style>
-        body {
-            font-family: 'Tahoma', sans-serif;
-            background: #f0f4f8;
-            padding: 20px;
-            color: #333;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px #ccc;
-            max-width: 800px;
-            margin: auto;
-        }
-        label, input, textarea {
-            display: block;
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 20px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: Tahoma;
-            margin-bottom: 30px;
-            box-shadow: 0 0 10px #ccc;
-        }
-        th, td {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
-        }
-        th {
-            background-color: #27ae60;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #666;
-        }
-        @media print {
-            .no-print, form, .footer, #loading {
-                display: none !important;
-            }
-            #print-section {
-                display: block;
-            }
-        }
-    </style>
-    <script>
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-        }
-    </script>
+  <meta charset="UTF-8">
+  <title>منصة التقييم الذكي لشواهد المعلمين</title>
+  <style>
+    body {
+      font-family: 'Tahoma', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #ccc;
+      max-width: 800px;
+      margin: auto;
+    }
+    label, input, textarea {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      padding: 10px 20px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Tahoma;
+      margin-bottom: 30px;
+      box-shadow: 0 0 10px #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #27ae60;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      color: #666;
+    }
+    @media print {
+      .no-print, form, .footer, #loading {
+        display: none !important;
+      }
+      #print-section {
+        display: block;
+      }
+    }
+  </style>
+  <script>
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+    }
+  </script>
 </head>
 <body>
 
-    <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
+  <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
 
-    <!-- جدول العناصر الرسمية -->
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>اسم العنصر</th>
-                <th>الوزن (%)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td>1</td><td>أداء الواجبات الوظيفية</td><td>10%</td></tr>
-            <tr><td>2</td><td>التفاعل مع المجتمع المحلي</td><td>10%</td></tr>
-            <tr><td>3</td><td>التفاعل مع أولياء الأمور</td><td>10%</td></tr>
-            <tr><td>4</td><td>تنويع استراتيجيات التدريس</td><td>10%</td></tr>
-            <tr><td>5</td><td>تحسين نواتج المتعلمين</td><td>10%</td></tr>
-            <tr><td>6</td><td>إعداد وتنفيذ خطة الدرس</td><td>10%</td></tr>
-            <tr><td>7</td><td>توظيف التقنيات والوسائل التعليمية</td><td>10%</td></tr>
-            <tr><td>8</td><td>تهيئة البيئة التعليمية</td><td>5%</td></tr>
-            <tr><td>9</td><td>ضبط سلوك الطلاب</td><td>5%</td></tr>
-            <tr><td>10</td><td>تحليل نتائج المتعلمين وتشخيص مستواهم</td><td>10%</td></tr>
-            <tr><td>11</td><td>تنوع أساليب التقويم</td><td>10%</td></tr>
-        </tbody>
+  <!-- جدول العناصر الرسمية -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>اسم العنصر</th>
+        <th>الوزن (%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>أداء الواجبات الوظيفية</td><td>10%</td></tr>
+      <tr><td>2</td><td>التفاعل مع المجتمع المحلي</td><td>10%</td></tr>
+      <tr><td>3</td><td>التفاعل مع أولياء الأمور</td><td>10%</td></tr>
+      <tr><td>4</td><td>تنويع استراتيجيات التدريس</td><td>10%</td></tr>
+      <tr><td>5</td><td>تحسين نواتج المتعلمين</td><td>10%</td></tr>
+      <tr><td>6</td><td>إعداد وتنفيذ خطة الدرس</td><td>10%</td></tr>
+      <tr><td>7</td><td>توظيف التقنيات والوسائل التعليمية</td><td>10%</td></tr>
+      <tr><td>8</td><td>تهيئة البيئة التعليمية</td><td>5%</td></tr>
+      <tr><td>9</td><td>ضبط سلوك الطلاب</td><td>5%</td></tr>
+      <tr><td>10</td><td>تحليل نتائج المتعلمين وتشخيص مستواهم</td><td>10%</td></tr>
+      <tr><td>11</td><td>تنوع أساليب التقويم</td><td>10%</td></tr>
+    </tbody>
+  </table>
+
+  <!-- نموذج الإدخال -->
+  <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+    <label>اسم المعلم:</label>
+    <input type="text" name="teacher_name" value="{{ teacher_name }}">
+
+    <label>المدرسة:</label>
+    <input type="text" name="school" value="{{ school }}">
+
+    <label>المسمى الوظيفي:</label>
+    <input type="text" name="job_title" value="{{ job_title }}">
+
+    <label>اسم المدير:</label>
+    <input type="text" name="principal_name" value="{{ principal_name }}">
+
+    <label>نص الشاهد:</label>
+    <textarea name="shahid" rows="5"></textarea>
+
+    <label>أو ارفع صورة:</label>
+    <input type="file" name="image">
+
+    <label>أو ارفع ملف PDF:</label>
+    <input type="file" name="pdf_file">
+
+    <button type="submit">تحليل الشاهد</button>
+  </form>
+
+  <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
+    جاري التحليل... يرجى الانتظار
+  </div>
+
+  {% if gpt_result %}
+  <div id="print-section">
+    <h2 style="margin-top: 40px;">نتيجة التحليل الذكي</h2>
+    <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">
+      {{ gpt_result | safe }}
+    </div>
+
+    {% if final_score %}
+    <table style="width: 300px; margin: 30px auto; font-size: 18px; border: 2px solid #27ae60;">
+      <tr style="background-color: #27ae60; color: white;">
+        <th>الدرجة النهائية من 5</th>
+        <th>النسبة المئوية</th>
+      </tr>
+      <tr>
+        <td><strong>{{ final_score }}</strong></td>
+        <td><strong>{{ final_percentage }}%</strong></td>
+      </tr>
     </table>
 
-    <!-- نموذج الإدخال -->
-    <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-        <label>اسم المعلم:</label>
-        <input type="text" name="teacher_name" value="{{ teacher_name }}">
-
-        <label>المدرسة:</label>
-        <input type="text" name="school" value="{{ school }}">
-
-        <label>المسمى الوظيفي:</label>
-        <input type="text" name="job_title" value="{{ job_title }}">
-
-        <label>اسم المدير:</label>
-        <input type="text" name="principal_name" value="{{ principal_name }}">
-
-        <label>نص الشاهد:</label>
-        <textarea name="shahid" rows="5"></textarea>
-
-        <label>أو ارفع صورة:</label>
-        <input type="file" name="image">
-
-        <label>أو ارفع ملف PDF:</label>
-        <input type="file" name="pdf_file">
-
-        <button type="submit">تحليل الشاهد</button>
-    </form>
-
-    <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
-        جاري التحليل... يرجى الانتظار
-    </div>
-
-    {% if gpt_result %}
-    <div id="print-section">
-        <h2 style="margin-top: 40px;">نتائج التحليل التلقائي</h2>
-        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">
-            {{ gpt_result | safe }}
-        </div>
-
-        {% if final_score %}
-        <table style="width: 300px; margin: 30px auto; font-size: 18px; border: 2px solid #27ae60;">
-          <tr style="background-color: #27ae60; color: white;">
-            <th>الدرجة النهائية من 5</th>
-            <th>النسبة المئوية</th>
-          </tr>
-          <tr>
-            <td><strong>{{ final_score }}</strong></td>
-            <td><strong>{{ final_percentage }}%</strong></td>
-          </tr>
-        </table>
-
-        <div style="text-align: center; font-size: 18px; margin-top: 30px;">
-            <p><strong>اسم المعلم:</strong> {{ teacher_name }}</p>
-            <p><strong>اسم المدير:</strong> {{ principal_name }}</p>
-            <p><strong>التوقيع:</strong> _______________________</p>
-        </div>
-        {% endif %}
+    <div style="text-align: center; font-size: 18px; margin-top: 30px;">
+      <p><strong>اسم المعلم:</strong> {{ teacher_name }}</p>
+      <p><strong>اسم المدير:</strong> {{ principal_name }}</p>
+      <p><strong>التوقيع:</strong> _______________________</p>
     </div>
     {% endif %}
+  </div>
+  {% endif %}
 
-    <div class="footer no-print">
-        <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
-        <p><small>المنصة تجريبية وتُحدّث تدريجيًا باستخدام الذكاء الاصطناعي</small></p>
-        <button onclick="window.print()">طباعة النتيجة</button>
-    </div>
+  <div class="footer no-print">
+    <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
+    <p><small>المنصة تجريبية وتُحدّث تدريجيًا باستخدام الذكاء الاصطناعي</small></p>
+    <button onclick="window.print()">طباعة النتيجة</button>
+  </div>
 
 </body>
 </html>
