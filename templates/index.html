@@ -1,49 +1,128 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>منصة التقييم الذكي</title>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif;
+            background: #f0f4f8;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+            max-width: 800px;
+            margin: auto;
+        }
+        label, input, textarea {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 0 10px #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        th {
+            background: #27ae60;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .no-print {
+            display: block;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-    <h2>منصة التقييم الذكي</h2>
-    <p>تصميم وابتكار: علي عسيري - ثانوية الظهران</p>
+    <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
     <form method="POST" enctype="multipart/form-data">
-        <input type="text" name="teacher_name" placeholder="اسم المعلم (اختياري)">
-        <input type="text" name="school" placeholder="اسم المدرسة (اختياري)">
-        <input type="text" name="job_title" placeholder="المسمى الوظيفي (اختياري)">
-        <textarea name="shahid" placeholder="أدخل الشاهد التعليمي هنا..."></textarea>
-        <br>
+        <label>اسم المعلم (اختياري):</label>
+        <input type="text" name="teacher_name">
+        <label>المدرسة (اختياري):</label>
+        <input type="text" name="school">
+        <label>المسمى الوظيفي (اختياري):</label>
+        <input type="text" name="job_title">
+        <label>نص الشاهد:</label>
+        <textarea name="shahid" rows="5"></textarea>
         <label>أو ارفع صورة:</label>
         <input type="file" name="image">
         <button type="submit">تحليل الشاهد</button>
     </form>
 
     {% if result %}
-    <h3>نتائج التقييم اليدوي:</h3>
-    <table border="1">
-        <tr>
-            <th>العنصر</th>
-            <th>الوزن</th>
-            <th>الدرجة (من 5)</th>
-            <th>التقدير</th>
-            <th>الملاحظة</th>
-        </tr>
-        {% for r in result %}
-        <tr>
-            <td>{{ r.item }}</td>
-            <td>{{ r.weight }}%</td>
-            <td>{{ r.score }}</td>
-            <td>{{ r.percent }}</td>
-            <td>{{ r.note }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-    <p><strong>المجموع النهائي:</strong> {{ grade }} من 5</p>
+        <h2>نتائج التحليل اليدوي</h2>
+        <table>
+            <tr>
+                <th>العنصر</th>
+                <th>الوزن</th>
+                <th>الدرجة (من 2)</th>
+                <th>النسبة</th>
+                <th>الملاحظة</th>
+            </tr>
+            {% for r in result %}
+            <tr>
+                <td>{{ r.item }}</td>
+                <td>{{ r.weight }}%</td>
+                <td>{{ r.score }}</td>
+                <td>{{ r.percent }}%</td>
+                <td>{{ r.note }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        <h3>التقدير النهائي: {{ grade }} / 5</h3>
     {% endif %}
 
     {% if gpt_result %}
-    <h3>تحليل الذكاء الاصطناعي:</h3>
-    <pre>{{ gpt_result }}</pre>
+    <div class="no-print">
+        <h2>تحليل الذكاء الاصطناعي (GPT)</h2>
+        <pre>{{ gpt_result }}</pre>
+    </div>
     {% endif %}
+
+    <div class="footer">
+        <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
+        <p><small>المنصة تجريبية وتم اختبارها من قبل الذكاء الاصطناعي وتُحدَّث تدريجيًا</small></p>
+        <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
+    </div>
 </body>
 </html>
