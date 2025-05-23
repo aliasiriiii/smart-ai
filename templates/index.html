@@ -101,10 +101,30 @@
 {% if gpt_result %}
 <div id="print-section">
   <h2>نتيجة التحليل الذكي:</h2>
-  <div style="white-space: pre-wrap; font-size: 17px;">
-    {{ gpt_result | safe }}
-  </div>
 
+  <!-- جدول العناصر الرسمية -->
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>اسم العنصر</th>
+        <th>درجة التحقق</th>
+        <th>النسبة المحققة حسب الوزن</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for idx, item in enumerate(gpt_result['elements'], start=1) %}
+      <tr>
+        <td>{{ idx }}</td>
+        <td>{{ item['name'] }}</td>
+        <td>{{ item['score'] }}</td>
+        <td>{{ item['percentage'] }}%</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- الدرجة النهائية والنسبة الإجمالية -->
   {% if final_score %}
   <table style="width: 300px; margin: 30px auto;">
     <tr style="background-color: #27ae60; color: white;">
@@ -116,21 +136,25 @@
       <td><strong>{{ final_percentage }}%</strong></td>
     </tr>
   </table>
+  {% endif %}
+
+  <!-- ملاحظات تحليلية -->
+  <div style="white-space: pre-wrap; font-size: 17px;">
+    <h3>الملاحظات التحليلية:</h3>
+    <ul>
+      {% for note in gpt_result['notes'] %}
+      <li>{{ note }}</li>
+      {% endfor %}
+    </ul>
+  </div>
 
   <div style="text-align: center; font-size: 18px; margin-top: 30px;">
     <p><strong>اسم المعلم:</strong> {{ teacher_name }}</p>
     <p><strong>اسم المدير:</strong> {{ principal_name }}</p>
     <p><strong>التوقيع:</strong> _______________________</p>
   </div>
-  {% endif %}
 </div>
 {% endif %}
 
 <div class="footer no-print">
-  <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
-  <p><small>المنصة تجريبية وتُحدّث تدريجيًا باستخدام الذكاء الاصطناعي</small></p>
-  <button onclick="window.print()">طباعة النتيجة</button>
-</div>
-
-</body>
-</html>
+  <p>تصميم و 
