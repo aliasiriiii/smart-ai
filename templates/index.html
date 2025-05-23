@@ -41,17 +41,19 @@
         }
         table {
             width: 100%;
+            margin-top: 30px;
             border-collapse: collapse;
-            margin-top: 20px;
+            background: white;
+            box-shadow: 0 0 10px #ccc;
             direction: rtl;
         }
         th, td {
-            border: 1px solid #ccc;
             padding: 10px;
             text-align: center;
+            border: 1px solid #ddd;
         }
         th {
-            background-color: #27ae60;
+            background: #27ae60;
             color: white;
         }
         tr:nth-child(even) {
@@ -76,11 +78,11 @@
     <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
     <form method="POST" enctype="multipart/form-data">
         <label>اسم المعلم (اختياري):</label>
-        <input type="text" name="teacher_name">
+        <input type="text" name="teacher_name" value="{{ teacher_name }}">
         <label>المدرسة (اختياري):</label>
-        <input type="text" name="school">
+        <input type="text" name="school" value="{{ school }}">
         <label>المسمى الوظيفي (اختياري):</label>
-        <input type="text" name="job_title">
+        <input type="text" name="job_title" value="{{ job_title }}">
         <label>نص الشاهد:</label>
         <textarea name="shahid" rows="5"></textarea>
         <label>أو ارفع صورة:</label>
@@ -99,4 +101,4 @@
         <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
     </div>
 </body>
-</html
+</html>
