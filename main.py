@@ -13,7 +13,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # استبدله بمفتاحك الفعلي
+    api_key = "helloworld"
     with open(image_path, 'rb') as f:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -84,8 +84,6 @@ def index():
 - "العنصر 1: أداء الواجبات الوظيفية"
 - تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
 - اترك سطرًا فارغًا بين كل عنصر وآخر
-
-لا تعتبر وجود كلمات مثل "اختبار"، "كتاب"، "مقرر" كافية بدون سياق تربوي مثل تحليل، تفاعل، أدوات تقويم، أو تحضير فعلي.
 
 النص:
 {input_text}
