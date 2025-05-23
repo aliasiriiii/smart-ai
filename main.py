@@ -1,66 +1,102 @@
 from flask import Flask, render_template, request
-from PIL import Image
-import pytesseract
 import os
+import requests
 import openai
-from rubric_keywords import rubric_keywords
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# مفتاح OpenAI يؤخذ من متغير البيئة
+# إعداد GPT
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def analyze_with_keywords(text):
-    result = []
+# مفتاح OCR.space (استبدله لاحقًا بمفتاحك الخاص)
+OCR_SPACE_API_KEY = "helloworld"
+
+# عناصر التقييم التربوي
+elements = [
+    "أداء الواجبات الوظيفية", "التفاعل مع المجتمع المحلي", "التفاعل مع أولياء الأمور",
+    "تنويع استراتيجيات التدريس", "تحسين نواتج المتعلمين", "إعداد وتنفيذ خطة الدرس",
+    "توظيف التقنيات", "تهيئة البيئة التعليمية", "ضبط سلوك الطلاب",
+    "تحليل نتائج المتعلمين", "تنوع أساليب التقويم"
+]
+
+# استخراج النص من الصورة عبر OCR.space
+def extract_text_from_image_ocrspace(image_path, api_key):
+    with open(image_path, 'rb') as f:
+        response = requests.post(
+            'https://api.ocr.space/parse/image',
+            files={'filename': f},
+            data={'apikey': api_key, 'language': 'ara'}
+        )
+    result = response.json()
+    if result.get("IsErroredOnProcessing"):
+        return ""
+    return result['ParsedResults'][0]['ParsedText']
+
+# تحليل رد GPT وتحويله لجدول
+def parse_gpt_response_to_table(gpt_text):
+    table = []
     total_score = 0
-    for item in rubric_keywords:
-        matched = sum(1 for kw in item["keywords"] if kw in text)
-        score = min(matched, 2)
-        percent = round((score / 2) * 5, 1)
-        note = "العنصر غير ظاهر" if score == 0 else "محقق بدرجة عالية" if score == 2 else "محقق جزئياً"
-        result.append({
-            "item": item["item"],
-            "score": score,
-            "weight": item["weight"],
-            "percent": percent,
-            "note": note
-        })
-        total_score += percent
-    final_score = round(total_score / len(rubric_keywords), 2)
-    return result, final_score
+    lines = gpt_text.strip().split("\n")
+    for line in lines:
+        if ":" in line:
+            parts = line.split(":")
+            item_name = parts[0].strip("1234567890.- ").strip()
+            rest = ":".join(parts[1:]).strip()
+            # توزيع الدرجات حسب الملاحظة:
+            words_count = len(rest.split())
+            if words_count >= 2:
+                score = 5
+            elif words_count == 1:
+                score = 3
+            else:
+                score = 1
+            table.append({"item": item_name, "score": score, "note": rest})
+            total_score += score
+    final_score = round(total_score / len(table), 2) if table else 0
+    return table, final_score
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    result = []
-    grade = None
     gpt_result = ""
+    gpt_table = []
+    final_score = 0
+    teacher_name = ""
+    specialty = ""
+
     if request.method == 'POST':
         text = ""
+        teacher_name = request.form.get("teacher_name", "")
+        specialty = request.form.get("specialty", "")
         file = request.files.get('image')
         if file and file.filename:
             path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(path)
-            text = pytesseract.image_to_string(Image.open(path), lang='ara')
+            text = extract_text_from_image_ocrspace(path, OCR_SPACE_API_KEY)
         else:
-            text = request.form.get('shahid', '')
+            text = request.form.get("shahid", "")
 
-        result, grade = analyze_with_keywords(text)
+        if text:
+            prompt = "قيّم هذا الشاهد التعليمي وفق 11 عنصر تربوي، لكل عنصر:\n- درجة من 5\n- ملاحظة\n- ثم احسب التقدير النهائي\n\nالنص:\n" + text
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3
+                )
+                gpt_result = response.choices[0].message.content
+                gpt_table, final_score = parse_gpt_response_to_table(gpt_result)
+            except Exception as e:
+                gpt_result = f"حدث خطأ أثناء الاتصال بـ GPT: {str(e)}"
 
-        prompt = "قيّم هذا الشاهد التعليمي وفق 11 عنصر تربوي، لكل عنصر:\n- درجة من 5\n- ملاحظة\n- ثم احسب التقدير النهائي\n\nالنص:\n" + text
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            gpt_result = response.choices[0].message.content
-        except Exception as e:
-            gpt_result = f"حدث خطأ أثناء الاتصال بـ GPT: {str(e)}"
-
-    return render_template("index.html", result=result, grade=grade, gpt_result=gpt_result)
+    return render_template("index.html",
+                           gpt_result=gpt_result,
+                           gpt_table=gpt_table,
+                           final_score=final_score,
+                           teacher_name=teacher_name,
+                           specialty=specialty)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
