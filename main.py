@@ -2,20 +2,6 @@ from flask import Flask, render_template, request
 import os
 import requests
 import openai
-from pdf2image import convert
-
-أكيد يا علي، تفضل الآن نسخة **نظيفة 100%** من ملف `main.py`،  
-جاهزة للنسخ بدون أي رموز خفية أو مشاكل — ومطابقة تمامًا للتعديلات الأخيرة:
-
----
-
-## **`main.py` كامل ومحدث**
-
-```python
-from flask import Flask, render_template, request
-import os
-import requests
-import openai
 from pdf2image import convert_from_path
 from PIL import Image
 
@@ -27,7 +13,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # استبدلها بمفتاحك الحقيقي من OCR.space
+    api_key = "helloworld"  # استبدلها بمفتاحك من OCR.space
     with open(image_path, 'rb') as f:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -91,7 +77,7 @@ def index():
                 )
                 gpt_result = response.choices[0].message.content
 
-                # حساب الدرجات - مؤقتًا ثابتة، ويمكن تطويرها لاحقًا من gpt_result
+                # مؤقتًا، قيم تجريبية
                 final_score = 5
                 final_percentage = 92
 
