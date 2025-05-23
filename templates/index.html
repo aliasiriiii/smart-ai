@@ -52,12 +52,6 @@
             margin-top: 40px;
             color: #666;
         }
-        #loading {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 18px;
-            color: #2c3e50;
-        }
     </style>
     <script>
         function showLoading() {
@@ -85,13 +79,15 @@
         <button type="submit" onclick="showLoading()">تحليل الشاهد</button>
     </form>
 
-    <div id="loading" style="display:none;">جاري التحليل... يرجى الانتظار</div>
+    <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
+        جاري التحليل... يرجى الانتظار
+    </div>
 
     {% if gpt_result %}
-        <div class="no-print">
-            <h2>نتيجة التحليل الذكي (GPT)</h2>
-            <div style="white-space: normal;">{{ gpt_result | safe }}</div>
-        </div>
+    <div class="no-print">
+        <h2>نتيجة التحليل الذكي (GPT)</h2>
+        <div style="white-space: pre-wrap; line-height: 1.8; font-size: 17px; margin-top: 20px;">{{ gpt_result | safe }}</div>
+    </div>
     {% endif %}
 
     <div class="footer">
@@ -100,4 +96,4 @@
         <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
     </div>
 </body>
-</html>
+</html
