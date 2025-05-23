@@ -39,16 +39,23 @@
             font-size: 18px;
             cursor: pointer;
         }
-        pre {
-            background: #fff;
-            padding: 20px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            border: 1px solid #ddd;
-            box-shadow: 0 0 10px #ccc;
-            margin-top: 30px;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
             direction: rtl;
-            text-align: right;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #27ae60;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
         .footer {
             text-align: center;
@@ -82,8 +89,8 @@
     </form>
 
     {% if gpt_result %}
-    <h2>نتائج التحليل الذكي (GPT)</h2>
-    <pre>{{ gpt_result }}</pre>
+        <h2>نتائج التحليل الذكي (GPT)</h2>
+        <div>{{ gpt_result | safe }}</div>
     {% endif %}
 
     <div class="footer">
@@ -92,4 +99,4 @@
         <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
     </div>
 </body>
-</html>
+</html
