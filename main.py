@@ -1,121 +1,83 @@
-from flask import Flask, render_template, request
-import os
-import requests
+from flask import Flask, request, render_template
 import openai
-from pdf2image import convert_from_path
-from PIL import Image
+import os
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+rubric = [
+    {"name": "أداء الواجبات الوظيفية", "weight": 10},
+    {"name": "التفاعل مع المجتمع المحلي", "weight": 10},
+    {"name": "التفاعل مع أولياء الأمور", "weight": 10},
+    {"name": "تنويع استراتيجيات التدريس", "weight": 10},
+    {"name": "تحسين نواتج المتعلمين", "weight": 10},
+    {"name": "إعداد وتنفيذ خطة الدرس", "weight": 10},
+    {"name": "توظيف تقنيات ووسائل التعليم المناسبة", "weight": 10},
+    {"name": "تهيئة البيئة التعليمية", "weight": 5},
+    {"name": "ضبط سلوك الطلاب", "weight": 5},
+    {"name": "تحليل نتائج المتعلمين وتشخيص مستوياتهم", "weight": 10},
+    {"name": "تنويع أساليب التقويم", "weight": 10}
+]
 
-def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"
-    with open(image_path, 'rb') as f:
-        response = requests.post(
-            'https://api.ocr.space/parse/image',
-            files={'filename': f},
-            data={'apikey': api_key, 'language': 'ara'}
-        )
-    result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
-
-def extract_text_from_pdf(pdf_path):
-    images = convert_from_path(pdf_path)
-    full_text = ""
-    for i, img in enumerate(images):
-        img_path = os.path.join(app.config['UPLOAD_FOLDER'], f"page_{i}.jpg")
-        img.save(img_path, 'JPEG')
-        text = extract_text_from_image_ocr_space(img_path)
-        full_text += text + "\n"
-    return full_text
-
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    gpt_result = ""
-    teacher_name = request.form.get('teacher_name', '')
-    job_title = request.form.get('job_title', '')
-    school = request.form.get('school', '')
-    principal_name = request.form.get('principal_name', '')
-    input_text = ""
+    return render_template('index.html')
 
-    if request.method == 'POST':
-        file = request.files.get('image')
-        pdf_file = request.files.get('pdf_file')
-        if file and file.filename:
-            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(path)
-            input_text = extract_text_from_image_ocr_space(path)
-        elif pdf_file and pdf_file.filename:
-            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_file.filename)
-            pdf_file.save(pdf_path)
-            input_text = extract_text_from_pdf(pdf_path)
-        else:
-            input_text = request.form.get('shahid', '')
+@app.route('/analyze_text', methods=['POST'])
+def analyze_text():
+    input_text = request.form['input_text']
+    teacher_name = request.form['teacher_name']
+    school_name = request.form['school_name']
+    subject = request.form['subject']
 
-        prompt = f"""
-أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة التالية من وزارة التعليم:
+    prompt = (
+        "أنت محلل تربوي. أمامك نص شاهد، تحقق مما إذا كانت العناصر التالية مذكورة فيه (نعم / لا):\n" +
+        "\n".join([f"{i+1}. {item['name']} ({item['weight']}%)" for i, item in enumerate(rubric)]) +
+        f"\n\nالنص:\n{input_text}"
+    )
 
-1. أداء الواجبات الوظيفية - 10%
-2. التفاعل مع المجتمع المحلي - 10%
-3. التفاعل مع أولياء الأمور - 10%
-4. تنويع استراتيجيات التدريس - 10%
-5. تحسين نواتج المتعلمين - 10%
-6. إعداد وتنفيذ خطة الدرس - 10%
-7. توظيف التقنيات والوسائل التعليمية - 10%
-8. تهيئة البيئة التعليمية - 5%
-9. ضبط سلوك الطلاب - 5%
-10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
-11. تنوع أساليب التقويم - 10%
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": prompt}],
+        temperature=0.2
+    )
 
-لكل عنصر:
-- إذا لم يوجد أي شاهد → الدرجة = 1 من 5
-- إذا وُجد شاهد واحد فقط → الدرجة = 4 من 5
-- إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
+    content = response.choices[0].message['content']
+    lines = content.splitlines()
 
-ثم احسب النسبة المحققة لكل عنصر بناءً على وزنه.
+    result_rows = ""
+    achieved_count = 0
 
-ابدأ دائمًا بإخراج جدول HTML منسق باستخدام <table><tr><th><td> فقط، لا تستخدم Markdown أو تنسيق نصي.
+    for i, item in enumerate(rubric):
+        found = "نعم" in lines[i]
+        percent = item['weight'] if found else 0
+        if found:
+            achieved_count += 1
+        result_rows += f"<tr><td>{item['name']}</td><td>{item['weight']}%</td><td>{'نعم' if found else 'لا'}</td><td>{percent}%</td></tr>"
 
-ثم بعد الجدول مباشرة، أضف سطرًا يحتوي الدرجة النهائية (من 5) والنسبة المحققة (من 100%)، ثم بعد ذلك ملاحظات تحليلية لكل عنصر بهذا التنسيق:
+    if achieved_count >= 2:
+        final_score = 5
+    elif achieved_count == 1:
+        final_score = 4
+    else:
+        final_score = 1
 
-- "العنصر 1: أداء الواجبات الوظيفية"
-- تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
-- اترك سطرًا فارغًا بين كل عنصر وآخر
+    result_table = f"""
+    <table>
+      <tr><th>اسم العنصر</th><th>الوزن</th><th>تحقق العنصر</th><th>النسبة المحققة</th></tr>
+      {result_rows}
+    </table>
+    """
 
-لا تعتبر وجود كلمات مثل "اختبار"، "كتاب"، "مقرر"، "ورقة عمل" أو "وسيلة" كافية ما لم تكن مرتبطة بسياق تربوي واضح.
-
-مثال:
-تنبيه: وجود أوراق اختبار أو صور لأسئلة فقط لا يُعتبر دليلاً كافيًا على تحقق أي عنصر، مثل التقويم أو التحليل، ما لم تكن مصحوبة بسياق تربوي واضح يدل على الاستخدام الفعلي مثل "حللت نتائج" أو "قياس نواتج تعلم".
-
-- "وزعت اختبار" فقط → لا يُعتبر كافيًا
-- "حللت نتائج اختبار ختامي" أو "أجريت تقويماً تكوينياً" → يُعتبر شاهدًا تربويًا حقيقيًا
-
-إن وُجدت الكلمة دون دلالة تعليمية صريحة، فاعتبر العنصر غير متحقق.
-
-نص الشاهد:
-{input_text}
-"""
-
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            gpt_result = response.choices[0].message.content
-        except Exception as e:
-            gpt_result = f"حدث خطأ: {str(e)}"
-
-    return render_template("index.html",
-                           gpt_result=gpt_result,
-                           teacher_name=teacher_name,
-                           job_title=job_title,
-                           school=school,
-                           principal_name=principal_name)
+    return render_template(
+        'index.html',
+        result_table=result_table,
+        final_score=final_score,
+        gpt_analysis=content,
+        teacher_name=teacher_name,
+        school_name=school_name,
+        subject=subject
+    )
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(debug=True)
