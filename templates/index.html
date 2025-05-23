@@ -1,73 +1,99 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>منصة التقييم الذكي</title>
-    <style>
-        body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        th, td { border: 1px solid #999; padding: 10px; text-align: center; }
-        th { background-color: #4CAF50; color: white; }
-        .result-table { width: 300px; margin: auto; text-align: center; margin-top: 20px; }
-        .print-button { margin-top: 20px; text-align: center; }
-        .print-button button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-    </style>
-</head>
-<body>
+‏<!DOCTYPE html>
+‏<html lang="ar" dir="rtl">
+‏<head>
+‏  <meta charset="UTF-8" />
+‏  <title>منصة التقييم الذكي لشواهد المعلمين</title>
+‏  <style>
+‏    body {
+‏      font-family: 'Arial', sans-serif;
+‏      background-color: #f9f9f9;
+‏      padding: 20px;
+‏      text-align: center;
+    }
+‏    h1 {
+‏      color: #2e7d32;
+    }
+‏    input, textarea {
+‏      width: 80%;
+‏      margin: 10px 0;
+‏      padding: 8px;
+    }
+‏    button {
+‏      padding: 10px 25px;
+‏      background-color: #2e7d32;
+‏      color: white;
+‏      border: none;
+‏      cursor: pointer;
+    }
+‏    table {
+‏      width: 90%;
+‏      margin: 30px auto;
+‏      border-collapse: collapse;
+    }
+‏    th, td {
+‏      border: 1px solid #999;
+‏      padding: 10px;
+    }
+‏    .final-score {
+‏      background-color: #d4edda;
+‏      border: 2px solid #2e7d32;
+‏      color: #155724;
+‏      font-weight: bold;
+‏      padding: 15px;
+‏      margin: 20px auto;
+‏      width: 300px;
+‏      font-size: 18px;
+    }
+‏    .teacher-info {
+‏      margin-top: 20px;
+‏      font-weight: bold;
+‏      font-size: 16px;
+    }
+‏    .gpt-analysis {
+‏      margin-top: 30px;
+‏      padding: 10px;
+‏      background: #fff3cd;
+‏      border: 1px dashed #ffc107;
+‏      width: 80%;
+‏      margin-left: auto;
+‏      margin-right: auto;
+    }
+‏  </style>
+‏</head>
+‏<body>
+‏  <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
 
-    <h2 style="text-align: center;">منصة التقييم الذكي لشواهد المعلمين</h2>
+‏  <form action="/analyze_text" method="POST">
+‏    <input type="text" name="teacher_name" placeholder="اسم المعلم" required><br>
+‏    <input type="text" name="school_name" placeholder="اسم المدرسة" required><br>
+‏    <input type="text" name="subject" placeholder="التخصص / المسمى الوظيفي" required><br>
+‏    <textarea name="input_text" placeholder="أدخل نص الشاهد هنا..." required></textarea><br>
+‏    <button type="submit">تحليل الشاهد</button>
+‏  </form>
 
-    <form method="POST" action="/analyze_text">
-        <label for="input_text">أدخل الشاهد التعليمي:</label><br>
-        <textarea name="input_text" rows="6" cols="80" required></textarea><br><br>
-        <button type="submit">تحليل الشاهد</button>
-    </form>
+‏  {% if result_table %}
+‏    <div>{{ result_table|safe }}</div>
+‏  {% endif %}
 
-    {% if table %}
-        <div id="result-section">
-            <h3>نتائج التحليل اليدوي</h3>
-            <table>
-                <tr>
-                    <th>العنصر</th>
-                    <th>الدرجة (من 5)</th>
-                    <th>النسبة (%)</th>
-                    <th>الملاحظة</th>
-                </tr>
-                {% for row in table %}
-                    <tr>
-                        <td>{{ row.element }}</td>
-                        <td>{{ row.score }}</td>
-                        <td>{{ row.percentage }}%</td>
-                        <td>{{ row.comment }}</td>
-                    </tr>
-                {% endfor %}
-            </table>
+‏  {% if teacher_name %}
+‏    <div class="teacher-info">
+      اسم المعلم: {{ teacher_name }}<br>
+      المدرسة: {{ school_name }}<br>
+      التخصص / المسمى: {{ subject }}
+‏    </div>
+‏  {% endif %}
 
-            {% if final_score and final_percentage %}
-                <table class="result-table" border="1">
-                    <tr style="background-color: #4CAF50; color: white;">
-                        <th>الدرجة النهائية من 5</th>
-                        <th>النسبة المئوية</th>
-                    </tr>
-                    <tr>
-                        <td>{{ final_score }}</td>
-                        <td>{{ final_percentage }}%</td>
-                    </tr>
-                </table>
-            {% endif %}
+‏  {% if final_score %}
+‏    <div class="final-score">
+      التقدير النهائي: {{ final_score }} من 5
+‏    </div>
+‏  {% endif %}
 
-            <div class="print-button">
-                <button onclick="window.print()">طباعة النتيجة</button>
-            </div>
-        </div>
-    {% endif %}
-
-    {% if ai_analysis %}
-        <h3>تحليل GPT الذكي:</h3>
-        <div style="background-color: #e0f7fa; padding: 15px; border: 1px solid #ccc; margin-top: 20px;">
-            <pre>{{ ai_analysis }}</pre>
-        </div>
-    {% endif %}
-
-</body>
-</html>
+‏  {% if gpt_analysis %}
+‏    <div class="gpt-analysis">
+‏      <h3>تحليل GPT الذكي:</h3>
+‏      <p>{{ gpt_analysis }}</p>
+‏    </div>
+‏  {% endif %}
+‏</body>
+‏</html>
