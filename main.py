@@ -20,8 +20,15 @@ def extract_text_from_image_ocr_space(image_path):
             files={'filename': f},
             data={'apikey': api_key, 'language': 'ara'}
         )
-    result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
+    try:
+        result = response.json()
+        if not result['IsErroredOnProcessing'] and 'ParsedResults' in result:
+            return result['ParsedResults'][0].get('ParsedText', '')
+        else:
+            return ''
+    except Exception as e:
+        print("OCR Error:", e)
+        return ''
 
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
