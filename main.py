@@ -13,7 +13,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"  # استبدله بمفتاحك من OCR.space
+    api_key = "helloworld"  # استبدله بمفتاحك الحقيقي
     with open(image_path, 'rb') as f:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -90,8 +90,8 @@ def index():
                     temperature=0.3
                 )
                 gpt_result = response.choices[0].message.content
-                final_score = 5
-                final_percentage = 92
+                # استخراج الدرجة النهائية والنسبة المئوية من gpt_result إذا كانت متاحة
+                # يمكنك استخدام تعبيرات منتظمة (regex) لاستخراج هذه القيم
             except Exception as e:
                 gpt_result = f"حدث خطأ: {str(e)}"
 
