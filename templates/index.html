@@ -1,79 +1,73 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>منصة التقييم الذكي</title>
+    <title>منصة التقييم الذكي لشواهد المعلمين</title>
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f9f9f9;
-            margin: 40px;
-            text-align: center;
-        }
-        textarea {
-            width: 80%;
-            height: 150px;
-        }
-        table {
-            margin: 20px auto;
-            width: 80%;
-            border-collapse: collapse;
-            direction: rtl;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        .section-title {
-            margin-top: 40px;
-            font-size: 20px;
-            color: #333;
-        }
+        body { font-family: 'Tahoma', sans-serif; background: #f9f9f9; padding: 30px; }
+        h1, h3 { color: #2c3e50; text-align: center; }
+        form { background: #ffffff; padding: 20px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 0 10px #ccc; }
+        label { font-weight: bold; display: block; margin: 10px 0 5px; }
+        textarea, input[type=text], input[type=file] { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; background: #fff; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #2ecc71; color: white; }
+        .footer { margin-top: 30px; text-align: center; font-size: 14px; color: #777; }
+        .print-btn { margin-top: 20px; text-align: center; }
+        .print-btn button { background-color: #2ecc71; }
     </style>
 </head>
 <body>
-    <h2>منصة التقييم الذكي</h2>
-    <p>تصميم وإشراف: علي عسيري - ثانوية الظهران</p>
+    <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
 
     <form method="POST" enctype="multipart/form-data">
-        <label for="shahid">أدخل الشاهد التعليمي هنا:</label><br>
-        <textarea name="shahid" placeholder="يمكنك أيضًا رفع صورة..." required></textarea><br><br>
-        <label for="image">أو ارفع صورة للشاهد:</label>
-        <input type="file" name="image"><br><br>
-        <button type="submit">تحليل الشاهد</button>
+        <label for="teacher_name">اسم المعلم:</label>
+        <input type="text" name="teacher_name" required>
+
+        <label for="specialty">التخصص / المسمى الوظيفي:</label>
+        <input type="text" name="specialty" required>
+
+        <label for="shahid">الشاهد النصي:</label>
+        <textarea name="shahid" placeholder="اكتب الشاهد هنا..."></textarea>
+
+        <label for="image">أو ارفع صورة:</label>
+        <input type="file" name="image">
+
+        <div style="text-align:center;">
+            <button type="submit">تحليل الشاهد</button>
+        </div>
     </form>
 
-    {% if result %}
-        <div class="section-title">نتائج التقييم اليدوي:</div>
+    {% if gpt_table %}
+        <h3>نتائج تحليل الشاهد</h3>
+        <p><strong>المعلم:</strong> {{ teacher_name }} | <strong>التخصص:</strong> {{ specialty }}</p>
+
         <table>
             <tr>
-                <th>العنصر</th>
-                <th>الدرجة (من 5)</th>
-                <th>الوزن</th>
-                <th>التقدير</th>
+                <th>العنصر التربوي</th>
+                <th>درجة التقييم (من 5)</th>
                 <th>الملاحظة</th>
             </tr>
-            {% for row in result %}
+            {% for row in gpt_table %}
             <tr>
                 <td>{{ row.item }}</td>
                 <td>{{ row.score }}</td>
-                <td>{{ row.weight }}</td>
-                <td>{{ row.percent }}</td>
                 <td>{{ row.note }}</td>
             </tr>
             {% endfor %}
         </table>
-        <p><strong>الدرجة النهائية: {{ grade }} / 5</strong></p>
+
+        <div style="margin-top: 15px;"><strong>التقدير النهائي:</strong> {{ final_score }} / 5</div>
+
+        <div class="print-btn">
+            <button onclick="window.print()">طباعة النتيجة</button>
+        </div>
     {% endif %}
 
-    {% if gpt_result %}
-        <div class="section-title">تحليل الذكاء الاصطناعي:</div>
-        <pre style="text-align: right; background-color: #eef; padding: 10px;">{{ gpt_result }}</pre>
-    {% endif %}
+    <div class="footer">
+        تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران<br>
+        <small>المنصة تجريبية، يتم تطويرها تدريجيًا باستخدام الذكاء الاصطناعي</small>
+    </div>
 </body>
 </html>
