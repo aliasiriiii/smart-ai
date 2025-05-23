@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>منصة التقييم الذكي</title>
+    <title>منصة التقييم الذكي لشواهد المعلمين</title>
     <style>
         body {
             font-family: 'Tahoma', sans-serif;
@@ -45,7 +45,6 @@
             border-collapse: collapse;
             background: white;
             box-shadow: 0 0 10px #ccc;
-            direction: rtl;
         }
         th, td {
             padding: 10px;
@@ -59,11 +58,6 @@
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #666;
-        }
         .no-print {
             display: block;
         }
@@ -72,44 +66,43 @@
                 display: none;
             }
         }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
     <form method="POST" enctype="multipart/form-data">
         <label>اسم المعلم (اختياري):</label>
-        <input type="text" name="teacher_name" value="{{ teacher_name }}">
+        <input type="text" name="teacher_name">
         <label>المدرسة (اختياري):</label>
-        <input type="text" name="school" value="{{ school }}">
+        <input type="text" name="school">
         <label>المسمى الوظيفي (اختياري):</label>
-        <input type="text" name="job_title" value="{{ job_title }}">
-        <label>اسم مدير المدرسة (اختياري):</label>
-        <input type="text" name="principal_name" value="{{ principal_name }}">
+        <input type="text" name="job_title">
+        <label>اسم المدير (اختياري):</label>
+        <input type="text" name="principal_name">
         <label>نص الشاهد:</label>
         <textarea name="shahid" rows="5"></textarea>
         <label>أو ارفع صورة:</label>
         <input type="file" name="image">
+        <label>أو ارفع ملف PDF:</label>
+        <input type="file" name="pdf_file">
         <button type="submit">تحليل الشاهد</button>
     </form>
 
     {% if gpt_result %}
-        <h2>نتائج التحليل الذكي (GPT)</h2>
-        <div>{{ gpt_result | safe }}</div>
-    {% endif %}
-
-    {% if principal_name %}
-        <hr style="margin-top:40px;">
-        <h3>اعتماد الإدارة</h3>
-        <p><strong>تم الاطلاع على نتيجة التقييم من قبل مدير المدرسة:</strong> {{ principal_name }}</p>
-        <p style="margin-top:40px;">
-            ........................................... <br>
-            توقيع المدير / الختم الرسمي
-        </p>
+    <div class="no-print">
+        <h2>نتيجة تحليل الذكاء الاصطناعي</h2>
+        <div style="white-space: pre-wrap;">{{ gpt_result }}</div>
+    </div>
     {% endif %}
 
     <div class="footer">
         <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
-        <p><small>المنصة تجريبية وتم اختبارها من قبل الذكاء الاصطناعي وتُحدَّث تدريجيًا</small></p>
+        <p><small>المنصة تجريبية وتُحدّث تدريجيًا</small></p>
         <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
     </div>
 </body>
