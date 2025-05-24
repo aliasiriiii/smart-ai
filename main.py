@@ -189,8 +189,17 @@ def index():
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3
             )
-            content = response.choices[0].message.content
-            content_with_links = append_link_to_analysis(content, file_link)
+content = response.choices[0].message.content
+
+if "<table" not in content or "<tr>" not in content or "<td>" not in content:
+    gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT. يرجى التأكد من صيغة الشاهد، أو إعادة المحاولة بعد تعديل التنسيق.</div>"
+else:
+    content_with_links = append_link_to_analysis(content, file_link)
+    colored_table = colorize_table_rows(content_with_links)
+    colored_table = inject_link_column(colored_table, file_link)
+    final_score_block = calculate_final_score_from_table(content)
+    page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
+    gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block + page_info            content_with_links = append_link_to_analysis(content, file_link)
             colored_table = colorize_table_rows(content_with_links)
             colored_table = inject_link_column(colored_table, file_link)
             final_score_block = calculate_final_score_from_table(content)
