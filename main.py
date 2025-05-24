@@ -148,60 +148,31 @@ def index():
         else:
             input_text = request.form.get('shahid', '')
 
-        prompt = f"""
-أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة التالية من وزارة التعليم:
-
-1. أداء المهام الوظيفية - 10%
-2. التفاعل الإيجابي مع منسوبي المدرسة والمجتمع - 10%
-3. التفاعل مع أولياء الأمور - 10%
-4. تنويع استراتيجيات التدريس - 10%
-5. تحسين نواتج التعلم - 10%
-6. إعداد وتنفيذ خطة الدرس - 10%
-7. توظيف التقنيات والوسائل التعليمية - 10%
-8. تهيئة البيئة التعليمية - 5%
-9. ضبط سلوك الطلاب - 5%
-10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
-11. تنويع أساليب التقويم - 10%
-
-لكل عنصر:
-- إذا لم يوجد أي شاهد → الدرجة = 1 من 5
-- إذا وُجد شاهد واحد فقط → الدرجة = 4 من 5
-- إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
-
-مهم:
-- لا تُدرج أسماء وهمية. استخدم فقط الاسم المدخل: "{teacher_name}"
-- إذا كان الشاهد عبارة عن ملف واحد فقط أو مثال واحد، لا توزع الدرجات على أكثر من عنصرين إلا إذا وُجدت أدلة واضحة وسياقات متعددة.
-
-ابدأ دائمًا بتحليل الشاهد من خلال جدول HTML حقيقي باستخدام <table><tr><th><td> فقط. 
-تنبيه: إذا لم تبدأ الجدول بهذه الوسوم، فلن يتم عرض التحليل ولن تظهر النتائج. 
-لا تستخدم Markdown أو أعمدة مفصولة بشرطات أو نقاط. فقط جدول HTML متكامل.ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا الشكل:
-- "العنصر 1: أداء المهام الوظيفية"
-- وتحتها الملاحظة التفسيرية
-- اترك سطرًا فارغًا بين كل عنصر وآخر
+        prompt = f"""أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة من وزارة التعليم...
 
 النص:
-    input_text = ""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )    )
+{input_text}"""
 
-    content = response.choices[0].message.content
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            content = response.choices[0].message.content
 
-    if "<table" not in content or "<tr>" not in content or "<td>" not in content:
-        gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT. يرجى التأكد من صيغة الشاهد أو إعادة المحاولة بعد تعديل التنسيق.</div>"
-    else:
-        content_with_links = append_link_to_analysis(content, file_link)
-        colored_table = colorize_table_rows(content_with_links)
-        colored_table = inject_link_column(colored_table, file_link)
-        final_score_block = calculate_final_score_from_table(content)
-        page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
-        gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block + page_info
+            if "<table" not in content or "<tr>" not in content or "<td>" not in content:
+                gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT. يرجى التأكد من صيغة الشاهد أو إعادة المحاولة بعد تعديل التنسيق.</div>"
+            else:
+                content_with_links = append_link_to_analysis(content, file_link)
+                colored_table = colorize_table_rows(content_with_links)
+                colored_table = inject_link_column(colored_table, file_link)
+                final_score_block = calculate_final_score_from_table(content)
+                page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
+                gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block + page_info
 
-except Exception as e:
-    gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"            gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
+        except Exception as e:
+            gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
     return render_template("index.html",
                            gpt_result=gpt_result,
