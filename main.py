@@ -40,16 +40,22 @@ def extract_text_from_pdf(pdf_path):
 
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
-    scores = re.findall(r'<td>(\d+) من 5</td>\s*<td>(\d+)%</td>', table_html)
+    scores = re.findall(r'(\d) من 5</td>', table_html)
     total_score = 0
+    total_weight = 0
+
     if len(scores) == len(weights):
-        for i, (score_str, percent_str) in enumerate(scores):
-            percent = int(percent_str)
+        for i, score_str in enumerate(scores):
+            score = int(score_str)
+            percent = (score / 5) * 100
             weight = weights[i]
+            total_weight += weight
             total_score += (percent * weight) / 100
-        final_score_5 = round((total_score / 100) * 5, 2)
+
+        final_score_5 = round((total_score / total_weight) * 5, 2)
         return f"<div style='margin-top:20px; font-size:18px; color:#2c3e50; background:#fef9e7; padding:15px; border-radius:10px;'><strong>الدرجة النهائية:</strong> {final_score_5} من 5 ({int(total_score)}%)</div>"
-    return ""
+    else:
+        return "<div style='color:red;'>تعذر حساب الدرجة النهائية: عدد الدرجات لا يطابق عدد العناصر.</div>"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
