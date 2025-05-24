@@ -38,14 +38,44 @@ def extract_text_from_pdf(pdf_path):
         full_text += text + "\n"
     return full_text
 
+def generate_progress_bar(percent):
+    return f"""
+    <div style='background:#eee; border-radius:10px; overflow:hidden; margin-top:10px;'>
+      <div style='width:{percent}%; background:#2ecc71; padding:10px; color:white; text-align:center;'>
+        {percent}%
+      </div>
+    </div>
+    """
+
+def colorize_table_rows(table_html):
+    def get_class_by_score(score):
+        if score == 5:
+            return 'grade-5'
+        elif score == 4:
+            return 'grade-4'
+        else:
+            return 'grade-low'
+
+    pattern = r'(<tr>.*?<td>.*?)(\d) من 5(.*?</tr>)'
+
+    def replacer(match):
+        prefix, score_str, suffix = match.groups()
+        score = int(score_str)
+        row_class = get_class_by_score(score)
+        return f'<tr class="{row_class}">{prefix}{score_str} من 5{suffix}'
+
+    return re.sub(pattern, replacer, table_html, flags=re.DOTALL)
+
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
     scores = re.findall(r'(\d) من 5</td>', table_html)
     total_score = 0
     total_weight = 0
 
-    if len(scores) == len(weights):
+    if 7 <= len(scores) <= 11:
         for i, score_str in enumerate(scores):
+            if i >= len(weights):
+                break
             score = int(score_str)
             percent = (score / 5) * 100
             weight = weights[i]
@@ -53,9 +83,28 @@ def calculate_final_score_from_table(table_html):
             total_score += (percent * weight) / 100
 
         final_score_5 = round((total_score / total_weight) * 5, 2)
-        return f"<div style='margin-top:20px; font-size:18px; color:#2c3e50; background:#fef9e7; padding:15px; border-radius:10px;'><strong>الدرجة النهائية:</strong> {final_score_5} من 5 ({int(total_score)}%)</div>"
+        percent_score = int(total_score)
+        box = f"<div style='margin-top:20px; font-size:18px; color:#2c3e50; background:#e8f8f5; padding:15px; border-radius:10px;'><strong>الدرجة النهائية:</strong> {final_score_5} من 5 ({percent_score}%)</div>"
+        progress = generate_progress_bar(percent_score)
+        message = f"<div style='margin-top:10px; font-size:15px; color:#7f8c8d;'>تم الحساب بناءً على {len(scores)} عنصرًا من أصل 11.</div>"
+        return box + progress + message
     else:
-        return "<div style='color:red;'>تعذر حساب الدرجة النهائية: عدد الدرجات لا يطابق عدد العناصر.</div>"
+        return "<div style='color:red;'>تعذر حساب الدرجة النهائية: عدد العناصر أقل من المطلوب (الحد الأدنى 7).</div>"
+
+def append_link_to_analysis(content, file_link):
+    if not file_link:
+        return content
+
+    modified_lines = []
+    for line in content.split("\n"):
+        if line.strip().startswith("- العنصر"):
+            modified_lines.append(line)
+        elif line.strip():
+            link_html = f" <span style='color:#7f8c8d; font-size:13px;'> - <a href='{file_link}' target='_blank'>رابط الشاهد</a></span>"
+            modified_lines.append(line.strip() + link_html)
+        else:
+            modified_lines.append("")
+    return "\n".join(modified_lines)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -91,11 +140,11 @@ def index():
 3. التفاعل مع أولياء الأمور - 10%
 4. تنويع استراتيجيات التدريس - 10%
 5. تحسين نواتج التعلم - 10%
-6. إعداد وتنفيذ الدروس وفق التخطيط المناسب - 10%
-7. توظيف التقنية في التدريس - 10%
+6. إعداد وتنفيذ خطة الدرس - 10%
+7. توظيف التقنيات والوسائل التعليمية - 10%
 8. تهيئة البيئة التعليمية - 5%
 9. ضبط سلوك الطلاب - 5%
-10. تحليل نتائج الطلاب واستخدامها في تحسين التدريس - 10%
+10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
 11. تنويع أساليب التقويم - 10%
 
 لكل عنصر:
@@ -125,11 +174,10 @@ def index():
                 temperature=0.3
             )
             content = response.choices[0].message.content
+            content_with_links = append_link_to_analysis(content, file_link)
+            colored_table = colorize_table_rows(content_with_links)
             final_score_block = calculate_final_score_from_table(content)
-            result_body = content + final_score_block
-            if file_link:
-                result_body += f"<div style='margin-top:15px; font-size:16px;'><strong>رابط الشاهد:</strong> <a href='{file_link}' target='_blank'>{file_link}</a></div>"
-            gpt_result = result_body
+            gpt_result = colored_table + final_score_block
         except Exception as e:
             gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
