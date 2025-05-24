@@ -1,152 +1,128 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <title>منصة التقييم الذكي لشواهد المعلمين</title>
-    <style>
-        body {
-            font-family: 'Tahoma', sans-serif;
-            background: #f0f4f8;
-            padding: 20px;
-            color: #333;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px #ccc;
-            max-width: 800px;
-            margin: auto;
-        }
-        label, input, textarea {
-            display: block;
-            width: 100%;
-            margin-top: 10px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 20px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: Tahoma;
-            margin-bottom: 30px;
-            box-shadow: 0 0 10px #ccc;
-        }
-        th, td {
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
-        }
-        th {
-            background-color: #27ae60;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            color: #666;
-        }
-        @media print {
-            .no-print { display: none; }
-        }
-    </style>
-    <script>
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-        }
-    </script>
-</head>
-<body>
+ from flask import Flask, render_template, request
+import os
+import requests
+import openai
+from pdf2image import convert_from_path
+from PIL import Image
+import re
 
-    <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
+app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    <!-- جدول العناصر الرسمية -->
-    <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>اسم العنصر</th>
-                <th>الوزن (%)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr><td>1</td><td>أداء الواجبات الوظيفية</td><td>10%</td></tr>
-            <tr><td>2</td><td>التفاعل مع المجتمع المحلي</td><td>10%</td></tr>
-            <tr><td>3</td><td>التفاعل مع أولياء الأمور</td><td>10%</td></tr>
-            <tr><td>4</td><td>تنويع استراتيجيات التدريس</td><td>10%</td></tr>
-            <tr><td>5</td><td>تحسين نواتج المتعلمين</td><td>10%</td></tr>
-            <tr><td>6</td><td>إعداد وتنفيذ خطة الدرس</td><td>10%</td></tr>
-            <tr><td>7</td><td>توظيف التقنيات والوسائل التعليمية</td><td>10%</td></tr>
-            <tr><td>8</td><td>تهيئة البيئة التعليمية</td><td>5%</td></tr>
-            <tr><td>9</td><td>ضبط سلوك الطلاب</td><td>5%</td></tr>
-            <tr><td>10</td><td>تحليل نتائج المتعلمين وتشخيص مستواهم</td><td>10%</td></tr>
-            <tr><td>11</td><td>تنوع أساليب التقويم</td><td>10%</td></tr>
-        </tbody>
-    </table>
+client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-    <!-- نموذج الإدخال -->
-    <form method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
-        <label>اسم المعلم (اختياري):</label>
-        <input type="text" name="teacher_name" value="{{ teacher_name }}">
+def extract_text_from_image_ocr_space(image_path):
+    api_key = "helloworld"
+    with open(image_path, 'rb') as f:
+        response = requests.post(
+            'https://api.ocr.space/parse/image',
+            files={'filename': f},
+            data={'apikey': api_key, 'language': 'ara'}
+        )
+    result = response.json()
+    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
 
-        <label>المدرسة (اختياري):</label>
-        <input type="text" name="school" value="{{ school }}">
+def extract_text_from_pdf(pdf_path):
+    images = convert_from_path(pdf_path)
+    full_text = ""
+    for i, img in enumerate(images):
+        img_path = os.path.join(app.config['UPLOAD_FOLDER'], f"page_{i}.jpg")
+        img.save(img_path, 'JPEG')
+        text = extract_text_from_image_ocr_space(img_path)
+        full_text += text + "\n"
+    return full_text
 
-        <label>المسمى الوظيفي (اختياري):</label>
-        <input type="text" name="job_title" value="{{ job_title }}">
+def calculate_final_score_from_table(table_html):
+    weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
+    scores = re.findall(r'<td>(\d+) من 5</td>\s*<td>(\d+)%</td>', table_html)
+    total_score = 0
+    if len(scores) == len(weights):
+        for i, (score_str, percent_str) in enumerate(scores):
+            percent = int(percent_str)
+            weight = weights[i]
+            total_score += (percent * weight) / 100
+        final_score_5 = round((total_score / 100) * 5, 2)
+        return f"<div style='margin-top:20px; font-size:18px; color:#2c3e50; background:#fef9e7; padding:15px; border-radius:10px;'><strong>الدرجة النهائية:</strong> {final_score_5} من 5 ({int(total_score)}%)</div>"
+    return ""
 
-        <label>اسم المدير (اختياري):</label>
-        <input type="text" name="principal_name" value="{{ principal_name }}">
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    gpt_result = ""
+    teacher_name = request.form.get('teacher_name', '')
+    job_title = request.form.get('job_title', '')
+    school = request.form.get('school', '')
+    principal_name = request.form.get('principal_name', '')
+    input_text = ""
 
-        <label>نص الشاهد:</label>
-        <textarea name="shahid" rows="5"></textarea>
+    if request.method == 'POST':
+        file = request.files.get('image')
+        pdf_file = request.files.get('pdf_file')
+        if file and file.filename:
+            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(path)
+            input_text = extract_text_from_image_ocr_space(path)
+        elif pdf_file and pdf_file.filename:
+            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_file.filename)
+            pdf_file.save(pdf_path)
+            input_text = extract_text_from_pdf(pdf_path)
+        else:
+            input_text = request.form.get('shahid', '')
 
-        <label>أو ارفع صورة:</label>
-        <input type="file" name="image">
+        prompt = f"""
+أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة التالية من وزارة التعليم:
 
-        <label>أو ارفع ملف PDF:</label>
-        <input type="file" name="pdf_file">
+1. أداء الواجبات الوظيفية - 10%
+2. التفاعل مع المجتمع المحلي - 10%
+3. التفاعل مع أولياء الأمور - 10%
+4. تنويع استراتيجيات التدريس - 10%
+5. تحسين نواتج المتعلمين - 10%
+6. إعداد وتنفيذ خطة الدرس - 10%
+7. توظيف التقنيات والوسائل التعليمية - 10%
+8. تهيئة البيئة التعليمية - 5%
+9. ضبط سلوك الطلاب - 5%
+10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
+11. تنوع أساليب التقويم - 10%
 
-        <button type="submit">تحليل الشاهد</button>
-    </form>
+لكل عنصر:
+- إذا لم يوجد أي شاهد → الدرجة = 1 من 5
+- إذا وُجد شاهد واحد فقط → الدرجة = 4 من 5
+- إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
 
-    <!-- شاشة الانتظار -->
-    <div id="loading" style="display:none; text-align:center; margin-top:20px; font-size:18px; color:#2c3e50;">
-        جاري التحليل... يرجى الانتظار
-    </div>
+ثم احسب النسبة المحققة لكل عنصر بناءً على وزنه.
 
-    <!-- النتيجة -->
-    {% if gpt_result %}
-    <div class="no-print">
-        <h2 style="margin-top: 40px;">نتيجة التحليل الذكي (GPT)</h2>
-        <div style="white-space: pre-wrap; font-size: 17px; line-height: 2;">
-            {{ gpt_result | safe }}
-        </div>
-    </div>
-    {% endif %}
+ابدأ دائمًا بإخراج جدول HTML منسق باستخدام <table><tr><th><td> فقط، لا تستخدم Markdown أو تنسيق نصي.
 
-    <div class="footer">
-        <p>تصميم وابتكار: الأستاذ علي عسيري - ثانوية الظهران</p>
-        <p><small>المنصة تجريبية وتُحدّث تدريجيًا باستخدام الذكاء الاصطناعي</small></p>
-        <button onclick="window.print()" class="no-print">طباعة النتيجة</button>
-    </div>
+ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا التنسيق:
+- "العنصر 1: أداء الواجبات الوظيفية"
+- تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
+- اترك سطرًا فارغًا بين كل عنصر وآخر
 
-</body>
-</html>
+لا تعتبر وجود كلمات مثل "اختبار"، "كتاب"، "مقرر"، "ورقة عمل" أو "وسيلة" كافية بدون وجود دلالة تربوية واضحة مثل "تحليل نتائج"، "تقويم تكويني"، "خطة علاجية"، أو استخدام فعلي لأداة تدريسية أو تقويمية داخل السياق.
+
+النص:
+{input_text}
+"""
+
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3
+            )
+            content = response.choices[0].message.content
+            final_score_block = calculate_final_score_from_table(content)
+            gpt_result = content + final_score_block
+        except Exception as e:
+            gpt_result = f"حدث خطأ: {str(e)}"
+
+    return render_template("index.html",
+                           gpt_result=gpt_result,
+                           teacher_name=teacher_name,
+                           job_title=job_title,
+                           school=school,
+                           principal_name=principal_name)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
