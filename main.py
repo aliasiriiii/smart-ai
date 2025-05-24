@@ -180,14 +180,13 @@ def index():
 - اترك سطرًا فارغًا بين كل عنصر وآخر
 
 النص:
-{input_text}
-"""
-try:
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
+    input_text = ""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )    )
 
     content = response.choices[0].message.content
 
