@@ -47,39 +47,59 @@ def generate_progress_bar(percent):
     </div>
     """
 
-def colorize_table_rows(table_html):
-    def get_class_by_score(score):
-        if score == 5:
-            return 'grade-5'
-        elif score == 4:
-            return 'grade-4'
-        else:
-            return 'grade-low'
+def generate_summary_table(table_html, gpt_analysis_text):
+    headers = [
+        "أداء المهام الوظيفية",
+        "التفاعل الإيجابي مع منسوبي المدرسة والمجتمع",
+        "التفاعل مع أولياء الأمور",
+        "تنويع استراتيجيات التدريس",
+        "تحسين نواتج التعلم",
+        "إعداد وتنفيذ خطة الدرس",
+        "توظيف التقنيات والوسائل التعليمية",
+        "تهيئة البيئة التعليمية",
+        "ضبط سلوك الطلاب",
+        "تحليل نتائج المتعلمين وتشخيص مستواهم",
+        "تنويع أساليب التقويم"
+    ]
 
-    pattern = r'(<tr>.*?<td>.*?)(\d)\s*(?:من 5)?(.*?</tr>)'
+    scores = re.findall(r'<td>(\d)\s*من 5</td>', table_html)
+    score_map = {h: int(scores[i]) if i < len(scores) else 1 for i, h in enumerate(headers)}
 
-    def replacer(match):
-        prefix, score_str, suffix = match.groups()
-        score = int(score_str)
-        row_class = get_class_by_score(score)
-        return f'<tr class="{row_class}">{prefix}{score_str} من 5{suffix}'
+    analysis_map = {}
+    for block in gpt_analysis_text.split("- العنصر"):
+        for h in headers:
+            if h in block:
+                lines = block.strip().split("\n")
+                if len(lines) > 1:
+                    analysis_map[h] = lines[1][:60] + ("..." if len(lines[1]) > 60 else "")
+                break
 
-    return re.sub(pattern, replacer, table_html, flags=re.DOTALL)
+    html = '''
+    <h3 style="margin-top:30px; color:#1a5276;">الجدول التلخيصي للدرجات:</h3>
+    <table style="width:100%; border-collapse:collapse; margin-bottom:30px; font-family:Tahoma;">
+      <tr style="text-align:center;">
+        <th style="padding:10px; border:1px solid #ccc; background:#d6eaf8;">العنصر</th>
+        <th style="padding:10px; border:1px solid #ccc; background:#e8f8f5;">الدرجة</th>
+        <th style="padding:10px; border:1px solid #ccc; background:#f9ebea;">الحالة</th>
+        <th style="padding:10px; border:1px solid #ccc; background:#fcf3cf;">ملاحظة</th>
+      </tr>
+    '''
 
-def inject_link_column(table_html, file_link):
-    if not file_link:
-        return table_html
+    for h in headers:
+        s = score_map.get(h, 1)
+        state = "تحقق بالكامل" if s == 5 else "تحقق جزئيًا" if s == 4 else "لم يتحقق"
+        note = analysis_map.get(h, "لا توجد ملاحظة متاحة")
+        html += f'''
+        <tr>
+          <td style="padding:10px; border:1px solid #ccc;">{h}</td>
+          <td style="padding:10px; border:1px solid #ccc;">{s} من 5</td>
+          <td style="padding:10px; border:1px solid #ccc;">{state}</td>
+          <td style="padding:10px; border:1px solid #ccc;">{note}</td>
+        </tr>
+        '''
 
-    table_html = re.sub(r'(<tr>\s*<th>.+?</th>)', r'\1<th>رابط الشاهد</th>', table_html, count=1)
-
-    table_html = re.sub(
-        r'(<tr[^>]*>.*?</tr>)',
-        lambda m: re.sub(r'(</tr>)', f"<td><a href='{file_link}' target='_blank'>رابط</a></td>\\1", m.group()),
-        table_html,
-        flags=re.DOTALL
-    )
-
-    return table_html
+    html += "</table>"
+    return html
 
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
@@ -105,21 +125,6 @@ def calculate_final_score_from_table(table_html):
         return box + progress + message
     else:
         return "<div style='color:red;'>تعذر حساب الدرجة النهائية: عدد العناصر أقل من المطلوب (الحد الأدنى 7).</div>"
-
-def append_link_to_analysis(content, file_link):
-    if not file_link:
-        return content
-
-    modified_lines = []
-    for line in content.split("\n"):
-        if line.strip().startswith("- العنصر"):
-            modified_lines.append(line)
-        elif line.strip():
-            link_html = f" <span style='color:#7f8c8d; font-size:13px;'> - <a href='{file_link}' target='_blank'>رابط الشاهد</a></span>"
-            modified_lines.append(line.strip() + link_html)
-        else:
-            modified_lines.append("")
-    return "\n".join(modified_lines)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -150,12 +155,7 @@ def index():
 
         prompt = f"""
 أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة.
-
-ابدأ دائمًا بإنشاء جدول HTML حقيقي يحتوي على 11 صفًا يمثل كل صف عنصرًا من عناصر التقييم التالية، 
-حتى لو لم توجد شواهد لبعضها. لا تترك أي عنصر فارغ. إذا لم يظهر له دليل واضح، أعطه (1 من 5).
-
-ممنوع إضافة أو حذف أو تعديل أي عنصر. استخدم فقط العناصر التالية بنفس الترتيب والنص تمامًا:
-
+استخدم العناصر التالية بالتحديد وابدأ الجدول مباشرة:
 1. أداء المهام الوظيفية - 10%
 2. التفاعل الإيجابي مع منسوبي المدرسة والمجتمع - 10%
 3. التفاعل مع أولياء الأمور - 10%
@@ -168,13 +168,13 @@ def index():
 10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
 11. تنويع أساليب التقويم - 10%
 
-ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا الشكل:
-- "العنصر 1: أداء المهام الوظيفية"
-- وتحتها الملاحظة التحليلية.
+اكتب جدول HTML فقط باستخدام <table><tr><td>، لا تستخدم Markdown.
 
-هام جدًا:
-- لا تُدرج أسماء وهمية، استخدم فقط الاسم التالي في النتائج: "{teacher_name}"
-- لا تُوزع درجات مرتفعة لجميع العناصر من شاهد واحد فقط، يجب أن يظهر شاهد مختلف أو سياق مختلف لكل عنصر.
+بعد الجدول، أضف ملاحظات تحليلية على كل عنصر بهذا الشكل:
+- "العنصر 1: ..."
+- متبوعًا بجملة مختصرة
+
+لا تكرر نفس الدرجة لجميع العناصر بدون شواهد واضحة.
 
 النص:
 {input_text}
@@ -195,12 +195,10 @@ def index():
                 if table_match:
                     table_html = table_match.group()
                     rest_of_analysis = content.replace(table_html, '')
-                    colored_table = colorize_table_rows(table_html)
-                    colored_table = inject_link_column(colored_table, file_link)
+                    summary_table = generate_summary_table(table_html, rest_of_analysis)
                     final_score_block = calculate_final_score_from_table(table_html)
                     page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
-                    rest_with_links = append_link_to_analysis(rest_of_analysis, file_link)
-                    gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>{colored_table}{final_score_block}{page_info}<br><br><div>{rest_with_links}</div>"
+                    gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>{table_html}<br>{summary_table}<br>{final_score_block}<br>{page_info}"
                 else:
                     gpt_result = "<div style='color:red;'>لم يتم العثور على جدول صالح في الرد.</div>"
         except Exception as e:
