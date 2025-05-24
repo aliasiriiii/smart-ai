@@ -56,7 +56,7 @@ def colorize_table_rows(table_html):
         else:
             return 'grade-low'
 
-    pattern = r'(<tr>.*?<td>.*?)(\d) من 5(.*?</tr>)'
+    pattern = r'(<tr>.*?<td>.*?)(\d)\s*(?:من 5)?(.*?</tr>)'
 
     def replacer(match):
         prefix, score_str, suffix = match.groups()
@@ -68,7 +68,7 @@ def colorize_table_rows(table_html):
 
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
-    scores = re.findall(r'(\d) من 5</td>', table_html)
+    scores = re.findall(r'>(\d)\s*(?:من 5)?</td>', table_html)
     total_score = 0
     total_weight = 0
 
@@ -152,7 +152,10 @@ def index():
 - إذا وُجد شاهد واحد فقط → الدرجة = 4 من 5
 - إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
 
-ثم احسب النسبة المحققة لكل عنصر بناءً على وزنه.
+مهم:
+- لا تعتبر وجود أداة تقويم واحدة مثل اختبار أو ورقة عمل دليلاً كافيًا على تنويع أساليب التقويم، إلا إذا ظهرت في سياقات مختلفة.
+- لا تستخدم أي أسماء معلمين أو طلاب غير مذكورة صراحة.
+- استخدم فقط الاسم المدخل في النموذج: "{teacher_name}"
 
 ابدأ دائمًا بإخراج جدول HTML منسق باستخدام <table><tr><th><td> فقط، لا تستخدم Markdown أو تنسيق نصي.
 
@@ -160,8 +163,6 @@ def index():
 - "العنصر 1: أداء المهام الوظيفية"
 - تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
 - اترك سطرًا فارغًا بين كل عنصر وآخر
-
-لا تعتبر وجود كلمات مثل "اختبار"، "كتاب"، "مقرر"، "ورقة عمل" أو "وسيلة" كافية بدون وجود دلالة تربوية واضحة مثل "تحليل نتائج"، "تقويم تكويني"، "خطة علاجية"، أو استخدام فعلي لأداة تدريسية أو تقويمية داخل السياق.
 
 النص:
 {input_text}
@@ -177,7 +178,7 @@ def index():
             content_with_links = append_link_to_analysis(content, file_link)
             colored_table = colorize_table_rows(content_with_links)
             final_score_block = calculate_final_score_from_table(content)
-            gpt_result = colored_table + final_score_block
+            gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block
         except Exception as e:
             gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
