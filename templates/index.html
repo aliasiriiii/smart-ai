@@ -64,17 +64,24 @@
       .no-print {
         display: none;
       }
-      .result div:not(:has(table)):not(:has(h3)):not(:has(.progress-bar)) {
-        display: none;
+      .result {
+        box-shadow: none;
+        background: white;
+        padding: 0;
+        margin: 0;
       }
       body {
         background: white;
+      }
+      .footer-note {
+        display: block;
+        font-style: italic;
+        color: #333;
       }
     }
   </style>
 </head>
 <body>
-
   <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
 
   <form method="POST" enctype="multipart/form-data" class="no-print">
