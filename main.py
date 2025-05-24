@@ -153,11 +153,24 @@ def index():
 
 ابدأ دائمًا بإنشاء جدول HTML حقيقي يحتوي على 11 صفًا يمثل كل صف عنصرًا من عناصر التقييم التالية، 
 حتى لو لم توجد شواهد لبعضها. لا تترك أي عنصر فارغ. إذا لم يظهر له دليل واضح، أعطه (1 من 5).
-التنسيق يجب أن يكون باستخدام وسوم HTML فقط: <table><tr><td> بدون أي Markdown أو رموز أخرى.
+
+ممنوع إضافة أو حذف أو تعديل أي عنصر. استخدم فقط العناصر التالية بنفس الترتيب والنص تمامًا:
+
+1. أداء المهام الوظيفية - 10%
+2. التفاعل الإيجابي مع منسوبي المدرسة والمجتمع - 10%
+3. التفاعل مع أولياء الأمور - 10%
+4. تنويع استراتيجيات التدريس - 10%
+5. تحسين نواتج التعلم - 10%
+6. إعداد وتنفيذ خطة الدرس - 10%
+7. توظيف التقنيات والوسائل التعليمية - 10%
+8. تهيئة البيئة التعليمية - 5%
+9. ضبط سلوك الطلاب - 5%
+10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
+11. تنويع أساليب التقويم - 10%
 
 ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا الشكل:
 - "العنصر 1: أداء المهام الوظيفية"
-- وتحتها الملاحظة التفسيرية
+- وتحتها الملاحظة التحليلية.
 
 النص:
 {input_text}
@@ -172,16 +185,20 @@ def index():
             content = response.choices[0].message.content
 
             if "<table" not in content or "<tr>" not in content or "<td>" not in content:
-                print("نص GPT:\n", content)
-                gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT. يرجى التأكد من صيغة الشاهد أو إعادة المحاولة بعد تعديل التنسيق.</div>"
+                gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT.</div>"
             else:
-                content_with_links = append_link_to_analysis(content, file_link)
-                colored_table = colorize_table_rows(content_with_links)
-                colored_table = inject_link_column(colored_table, file_link)
-                final_score_block = calculate_final_score_from_table(content)
-                page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
-                gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block + page_info
-
+                table_match = re.search(r'<table.*?</table>', content, flags=re.DOTALL)
+                if table_match:
+                    table_html = table_match.group()
+                    rest_of_analysis = content.replace(table_html, '')
+                    colored_table = colorize_table_rows(table_html)
+                    colored_table = inject_link_column(colored_table, file_link)
+                    final_score_block = calculate_final_score_from_table(table_html)
+                    page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
+                    rest_with_links = append_link_to_analysis(rest_of_analysis, file_link)
+                    gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>{colored_table}{final_score_block}{page_info}<br><br><div>{rest_with_links}</div>"
+                else:
+                    gpt_result = "<div style='color:red;'>لم يتم العثور على جدول صالح في الرد.</div>"
         except Exception as e:
             gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
