@@ -56,35 +56,6 @@
       .no-print {
         display: none;
       }
-      .result div:not(:has(table)) {
-        display: none;
-      }
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: center;
-    }
-    tr.grade-5 {
-      background-color: #d5f5e3;
-    }
-    tr.grade-4 {
-      background-color: #fcf3cf;
-    }
-    tr.grade-low {
-      background-color: #f2f3f4;
-    }
-    a {
-      color: #2980b9;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
     }
   </style>
 </head>
@@ -94,7 +65,7 @@
 
   <form method="POST" enctype="multipart/form-data" class="no-print">
     <label>اسم المعلم:</label>
-    <input type="text" name="teacher_name" placeholder="مثال: أ. علي عسيري">
+    <input type="text" name="teacher_name" placeholder="مثال: أ. محمد القحطاني">
 
     <label>المسمى الوظيفي / التخصص:</label>
     <input type="text" name="job_title" placeholder="مثال: معلم فيزياء">
@@ -105,11 +76,13 @@
     <label>اسم القائد:</label>
     <input type="text" name="principal_name" placeholder="مثال: أ. خالد الدوسري">
 
-    <label>رابط الملف / كود التحقق:</label>
-    <input type="text" name="file_link" placeholder="مثال: https://drive.google.com/... أو كود مخصص">
+    <label>رابط الشاهد (كود تحقق أو Google Drive):</label>
+    <input type="text" name="file_link" placeholder="مثال: https://drive.google.com/...">
 
-    <label>ارفع صورة الشاهد أو ملف PDF:</label>
+    <label>ارفع صورة الشاهد:</label>
     <input type="file" name="image">
+
+    <label>أو ارفع ملف PDF:</label>
     <input type="file" name="pdf_file">
 
     <label>أو أدخل الشاهد نصيًا:</label>
@@ -120,7 +93,7 @@
 
   {% if gpt_result %}
     <div class="result">
-      {{ gpt_result | safe }}
+      {{ gpt_result|safe }}
     </div>
     <div class="print-button no-print">
       <button onclick="window.print()">طباعة التقرير</button>
