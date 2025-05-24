@@ -148,10 +148,20 @@ def index():
         else:
             input_text = request.form.get('shahid', '')
 
-        prompt = f"""أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة من وزارة التعليم...
+        prompt = f"""
+أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة.
+
+ابدأ دائمًا بإنشاء جدول HTML حقيقي يحتوي على 11 صفًا يمثل كل صف عنصرًا من عناصر التقييم التالية، 
+حتى لو لم توجد شواهد لبعضها. لا تترك أي عنصر فارغ. إذا لم يظهر له دليل واضح، أعطه (1 من 5).
+التنسيق يجب أن يكون باستخدام وسوم HTML فقط: <table><tr><td> بدون أي Markdown أو رموز أخرى.
+
+ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا الشكل:
+- "العنصر 1: أداء المهام الوظيفية"
+- وتحتها الملاحظة التفسيرية
 
 النص:
-{input_text}"""
+{input_text}
+"""
 
         try:
             response = client.chat.completions.create(
@@ -162,6 +172,7 @@ def index():
             content = response.choices[0].message.content
 
             if "<table" not in content or "<tr>" not in content or "<td>" not in content:
+                print("نص GPT:\n", content)
                 gpt_result = "<div style='color:red;'>لم يتم توليد جدول التحليل من قبل GPT. يرجى التأكد من صيغة الشاهد أو إعادة المحاولة بعد تعديل التنسيق.</div>"
             else:
                 content_with_links = append_link_to_analysis(content, file_link)
