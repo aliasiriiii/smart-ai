@@ -1,10 +1,11 @@
- from flask import Flask, render_template, request
+from flask import Flask, render_template, request
 import os
 import requests
 import openai
 from pdf2image import convert_from_path
 from PIL import Image
 import re
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -12,17 +13,20 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+OCR_API_KEY = os.environ.get("OCR_API_KEY")
 
 def extract_text_from_image_ocr_space(image_path):
-    api_key = "helloworld"
-    with open(image_path, 'rb') as f:
-        response = requests.post(
-            'https://api.ocr.space/parse/image',
-            files={'filename': f},
-            data={'apikey': api_key, 'language': 'ara'}
-        )
-    result = response.json()
-    return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
+    try:
+        with open(image_path, 'rb') as f:
+            response = requests.post(
+                'https://api.ocr.space/parse/image',
+                files={'filename': f},
+                data={'apikey': OCR_API_KEY, 'language': 'ara'}
+            )
+        result = response.json()
+        return result['ParsedResults'][0]['ParsedText'] if not result['IsErroredOnProcessing'] else ""
+    except:
+        return ""
 
 def extract_text_from_pdf(pdf_path):
     images = convert_from_path(pdf_path)
@@ -54,17 +58,20 @@ def index():
     job_title = request.form.get('job_title', '')
     school = request.form.get('school', '')
     principal_name = request.form.get('principal_name', '')
+    file_link = request.form.get('file_link', '')
     input_text = ""
 
     if request.method == 'POST':
         file = request.files.get('image')
         pdf_file = request.files.get('pdf_file')
-        if file and file.filename:
-            path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        if file and file.filename and file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            filename = secure_filename(file.filename)
+            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(path)
             input_text = extract_text_from_image_ocr_space(path)
-        elif pdf_file and pdf_file.filename:
-            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_file.filename)
+        elif pdf_file and pdf_file.filename and pdf_file.filename.lower().endswith('.pdf'):
+            filename = secure_filename(pdf_file.filename)
+            pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             pdf_file.save(pdf_path)
             input_text = extract_text_from_pdf(pdf_path)
         else:
@@ -73,17 +80,17 @@ def index():
         prompt = f"""
 أنت محلل تربوي متخصص في تقييم أداء المعلمين بناءً على الشواهد المكتوبة أو المصورة. مهمتك تحليل الشاهد أدناه باستخدام العناصر المعتمدة التالية من وزارة التعليم:
 
-1. أداء الواجبات الوظيفية - 10%
-2. التفاعل مع المجتمع المحلي - 10%
+1. أداء المهام الوظيفية - 10%
+2. التفاعل الإيجابي مع منسوبي المدرسة والمجتمع - 10%
 3. التفاعل مع أولياء الأمور - 10%
 4. تنويع استراتيجيات التدريس - 10%
-5. تحسين نواتج المتعلمين - 10%
-6. إعداد وتنفيذ خطة الدرس - 10%
-7. توظيف التقنيات والوسائل التعليمية - 10%
+5. تحسين نواتج التعلم - 10%
+6. إعداد وتنفيذ الدروس وفق التخطيط المناسب - 10%
+7. توظيف التقنية في التدريس - 10%
 8. تهيئة البيئة التعليمية - 5%
 9. ضبط سلوك الطلاب - 5%
-10. تحليل نتائج المتعلمين وتشخيص مستواهم - 10%
-11. تنوع أساليب التقويم - 10%
+10. تحليل نتائج الطلاب واستخدامها في تحسين التدريس - 10%
+11. تنويع أساليب التقويم - 10%
 
 لكل عنصر:
 - إذا لم يوجد أي شاهد → الدرجة = 1 من 5
@@ -95,7 +102,7 @@ def index():
 ابدأ دائمًا بإخراج جدول HTML منسق باستخدام <table><tr><th><td> فقط، لا تستخدم Markdown أو تنسيق نصي.
 
 ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا التنسيق:
-- "العنصر 1: أداء الواجبات الوظيفية"
+- "العنصر 1: أداء المهام الوظيفية"
 - تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
 - اترك سطرًا فارغًا بين كل عنصر وآخر
 
@@ -113,9 +120,12 @@ def index():
             )
             content = response.choices[0].message.content
             final_score_block = calculate_final_score_from_table(content)
-            gpt_result = content + final_score_block
+            result_body = content + final_score_block
+            if file_link:
+                result_body += f"<div style='margin-top:15px; font-size:16px;'><strong>رابط الشاهد:</strong> <a href='{file_link}' target='_blank'>{file_link}</a></div>"
+            gpt_result = result_body
         except Exception as e:
-            gpt_result = f"حدث خطأ: {str(e)}"
+            gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
     return render_template("index.html",
                            gpt_result=gpt_result,
