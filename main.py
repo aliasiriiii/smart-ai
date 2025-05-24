@@ -36,7 +36,7 @@ def extract_text_from_pdf(pdf_path):
         img.save(img_path, 'JPEG')
         text = extract_text_from_image_ocr_space(img_path)
         full_text += text + "\n"
-    return full_text
+    return full_text, len(images)
 
 def generate_progress_bar(percent):
     return f"""
@@ -65,6 +65,21 @@ def colorize_table_rows(table_html):
         return f'<tr class="{row_class}">{prefix}{score_str} من 5{suffix}'
 
     return re.sub(pattern, replacer, table_html, flags=re.DOTALL)
+
+def inject_link_column(table_html, file_link):
+    if not file_link:
+        return table_html
+
+    table_html = re.sub(r'(<tr>\s*<th>.+?</th>)', r'\1<th>رابط الشاهد</th>', table_html, count=1)
+
+    table_html = re.sub(
+        r'(<tr[^>]*>.*?</tr>)',
+        lambda m: re.sub(r'(</tr>)', f"<td><a href='{file_link}' target='_blank'>رابط</a></td>\\1", m.group()),
+        table_html,
+        flags=re.DOTALL
+    )
+
+    return table_html
 
 def calculate_final_score_from_table(table_html):
     weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
@@ -115,6 +130,7 @@ def index():
     principal_name = request.form.get('principal_name', '')
     file_link = request.form.get('file_link', '')
     input_text = ""
+    pdf_page_count = 0
 
     if request.method == 'POST':
         file = request.files.get('image')
@@ -128,7 +144,7 @@ def index():
             filename = secure_filename(pdf_file.filename)
             pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             pdf_file.save(pdf_path)
-            input_text = extract_text_from_pdf(pdf_path)
+            input_text, pdf_page_count = extract_text_from_pdf(pdf_path)
         else:
             input_text = request.form.get('shahid', '')
 
@@ -153,15 +169,14 @@ def index():
 - إذا وُجد شاهدين أو أكثر → الدرجة = 5 من 5
 
 مهم:
-- لا تعتبر وجود أداة تقويم واحدة مثل اختبار أو ورقة عمل دليلاً كافيًا على تنويع أساليب التقويم، إلا إذا ظهرت في سياقات مختلفة.
-- لا تستخدم أي أسماء معلمين أو طلاب غير مذكورة صراحة.
-- استخدم فقط الاسم المدخل في النموذج: "{teacher_name}"
+- لا تُدرج أسماء وهمية. استخدم فقط الاسم المدخل: "{teacher_name}"
+- إذا كان الشاهد عبارة عن ملف واحد فقط أو مثال واحد، لا توزع الدرجات على أكثر من عنصرين إلا إذا وُجدت أدلة واضحة وسياقات متعددة.
 
-ابدأ دائمًا بإخراج جدول HTML منسق باستخدام <table><tr><th><td> فقط، لا تستخدم Markdown أو تنسيق نصي.
+ابدأ دائمًا بإخراج جدول HTML باستخدام <table><tr><td> فقط، بدون Markdown أو تنسيقات نصية.
 
-ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا التنسيق:
+ثم بعد الجدول مباشرة، أضف ملاحظات تحليلية لكل عنصر بهذا الشكل:
 - "العنصر 1: أداء المهام الوظيفية"
-- تحته: الملاحظة التي تشرح لماذا اعتبرت العنصر متحقق أو غير متحقق
+- وتحتها الملاحظة التفسيرية
 - اترك سطرًا فارغًا بين كل عنصر وآخر
 
 النص:
@@ -177,8 +192,12 @@ def index():
             content = response.choices[0].message.content
             content_with_links = append_link_to_analysis(content, file_link)
             colored_table = colorize_table_rows(content_with_links)
+            colored_table = inject_link_column(colored_table, file_link)
             final_score_block = calculate_final_score_from_table(content)
-            gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block
+
+            page_info = f"<div style='margin-top:10px; font-size:15px; color:#5d6d7e;'>عدد الصفحات المحللة من PDF: {pdf_page_count}</div>" if pdf_page_count else ""
+
+            gpt_result = f"<h3>تحليل الشاهد المقدم من: {teacher_name}</h3><br>" + colored_table + final_score_block + page_info
         except Exception as e:
             gpt_result = f"<div style='color:red;'>حدث خطأ أثناء التحليل: {str(e)}</div>"
 
