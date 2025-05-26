@@ -210,7 +210,7 @@ async def process_with_gpt(input_text: str, max_retries: int = 3) -> str:
                 messages=[{"role": "user", "content": get_analysis_prompt(input_text)}],
                 temperature=0.3,
                 max_tokens=3000,
-                timeout=20
+                timeout=60
             )
             gpt_text = response.choices[0].message.content
             logger.info(f"تم استلام استجابة GPT-4 بطول {len(gpt_text)} حرف")
