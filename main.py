@@ -206,7 +206,9 @@ async def process_with_gpt(input_text: str, max_retries: int = 3) -> str:
     for attempt in range(max_retries):
         try:
             response = await client.chat.completions.create(
-                model="gpt-4-turbo-preview",
+    model="gpt-3.5-turbo",
+    ...
+)
                 messages=[{"role": "user", "content": get_analysis_prompt(input_text)}],
                 temperature=0.3,
                 max_tokens=3000,
