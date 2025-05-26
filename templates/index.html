@@ -88,6 +88,10 @@
       .ai-note-box {
         display: none;
       }
+
+      button, form {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -96,18 +100,18 @@
 
   <form method="POST" enctype="multipart/form-data">
     <div class="form-group">
-      <label>اسم المعلم:</label>
-      <input type="text" name="teacher_name" value="{{ teacher_name or '' }}" required />
+      <label>اسم المعلم (اختياري):</label>
+      <input type="text" name="teacher_name" value="{{ teacher_name or '' }}" />
     </div>
 
     <div class="form-group">
       <label>المسمى الوظيفي / التخصص:</label>
-      <input type="text" name="job_title" value="{{ job_title or '' }}" required />
+      <input type="text" name="job_title" value="{{ job_title or '' }}" />
     </div>
 
     <div class="form-group">
       <label>اسم المدرسة:</label>
-      <input type="text" name="school" value="{{ school or '' }}" required />
+      <input type="text" name="school" value="{{ school or '' }}" />
     </div>
 
     <div class="form-group">
@@ -154,7 +158,6 @@
   </div>
 
   <script>
-    // منع الإرسال إذا لم يُدخل المستخدم نص أو يرفع ملف
     document.querySelector("form").addEventListener("submit", function(e) {
       const text = document.querySelector("textarea[name='shahid']").value.trim();
       const image = document.querySelector("input[name='image']").files[0];
