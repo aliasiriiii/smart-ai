@@ -4,3 +4,4 @@ requests
 pillow
 PyMuPDF
 pdf2image
+numpy>=1.21
