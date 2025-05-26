@@ -7,27 +7,27 @@
   <style>
     body {
       font-family: 'Tahoma', sans-serif;
-      background: #f4f8fc;
-      padding: 20px;
+      background: #f7f9fb;
+      padding: 30px;
       color: #333;
     }
 
     h1 {
       text-align: center;
-      color: #1a5276;
-      margin-bottom: 30px;
+      color: #2c3e50;
+      margin-bottom: 25px;
     }
 
     form {
       background: #ffffff;
       padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-      margin-bottom: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 40px;
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
 
     label {
@@ -51,15 +51,12 @@
 
     .file-inputs {
       display: flex;
-      gap: 15px;
-    }
-
-    .file-inputs input {
-      flex: 1;
+      gap: 10px;
+      margin-top: 10px;
     }
 
     button {
-      background-color: #3498db;
+      background-color: #2980b9;
       color: white;
       padding: 12px 20px;
       border: none;
@@ -70,7 +67,31 @@
     }
 
     button:hover {
-      background-color: #2980b9;
+      background-color: #2471a3;
+    }
+
+    .analysis-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+
+    .analysis-table th, .analysis-table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .analysis-table th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .score-summary {
+      margin-top: 25px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #2c3e50;
     }
 
     .ai-note-box {
@@ -84,12 +105,17 @@
       line-height: 1.8;
     }
 
-    @media print {
-      .ai-note-box {
-        display: none;
-      }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 15px;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
 
-      button, form {
+    @media print {
+      .ai-note-box, .form-group, form, button, .print-hide {
         display: none;
       }
     }
@@ -115,7 +141,7 @@
     </div>
 
     <div class="form-group">
-      <label>اسم القائد:</label>
+      <label>اسم القائد (اختياري):</label>
       <input type="text" name="principal_name" value="{{ principal_name or '' }}" />
     </div>
 
@@ -147,17 +173,18 @@
   {% endif %}
 
   {% if error_message %}
-    <div style="background:#f8d7da; color:#721c24; padding:15px; margin-top:20px; border-radius:5px; border:1px solid #f5c6cb;">
+    <div class="error">
       {{ error_message }}
     </div>
   {% endif %}
 
-  <div style="margin-top: 30px;">
-    <button onclick="window.print()" style="background-color:#2ecc71;">طباعة التقرير</button>
-    <button onclick="location.reload()" style="background-color:#95a5a6; margin-right:10px;">إعادة تحليل جديد</button>
+  <div class="print-hide" style="margin-top: 30px;">
+    <button onclick="window.print()" style="background-color:#27ae60;">طباعة التقرير</button>
+    <button onclick="location.reload()" style="background-color:#95a5a6; margin-right:10px;">تحليل جديد</button>
   </div>
 
   <script>
+    // منع الإرسال بدون إدخال شاهد
     document.querySelector("form").addEventListener("submit", function(e) {
       const text = document.querySelector("textarea[name='shahid']").value.trim();
       const image = document.querySelector("input[name='image']").files[0];
@@ -165,7 +192,7 @@
 
       if (!text && !image && !pdf) {
         e.preventDefault();
-        alert("يرجى إدخال نص الشاهد أو رفع ملف صورة أو PDF.");
+        alert("يرجى إدخال نص الشاهد أو رفع صورة أو ملف PDF.");
       }
     });
   </script>
