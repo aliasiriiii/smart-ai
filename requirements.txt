@@ -1,7 +1,6 @@
-flask
-openai>=1.0.0
+flask[async]
 requests
-pillow
-PyMuPDF
+openai
 pdf2image
-numpy>=1.21
+pillow
+numpy
