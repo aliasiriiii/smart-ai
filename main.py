@@ -20,11 +20,9 @@ executor = ThreadPoolExecutor(max_workers=2)
 client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 OCR_API_KEY = os.environ.get("OCR_API_KEY")
 
-# تكوين نظام التسجيل
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# العناصر الإجبارية المطلوبة
 REQUIRED_ELEMENTS = [
     "أداء المهام الوظيفية",
     "التفاعل الإيجابي مع منسوبي المدرسة والمجتمع",
@@ -39,12 +37,60 @@ REQUIRED_ELEMENTS = [
     "تنويع أساليب التقويم"
 ]
 
+def analyze_with_keywords(input_text):
+    weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
+    KEYWORDS = {
+        "أداء المهام الوظيفية": ["تحضير", "شرح", "تنفيذ", "جدول"],
+        "التفاعل الإيجابي مع منسوبي المدرسة والمجتمع": ["زملاء", "فعالية", "مشاركة", "مجتمع"],
+        "التفاعل مع أولياء الأمور": ["ولي أمر", "رسالة", "تواصل", "استدعاء"],
+        "تنويع استراتيجيات التدريس": ["نشط", "تعاوني", "عصف", "مناقشة", "مجموعات"],
+        "تحسين نواتج التعلم": ["تحسن", "نتائج", "إنجاز", "تقدم"],
+        "إعداد وتنفيذ خطة الدرس": ["خطة", "جدول", "مراحل الدرس"],
+        "توظيف التقنيات والوسائل التعليمية": ["فيديو", "عرض", "شاشة", "بوربوينت", "تطبيق"],
+        "تهيئة البيئة التعليمية": ["تهيئة", "جو صفي", "مقاعد", "مناسب"],
+        "ضبط سلوك الطلاب": ["سلوك", "هدوء", "نظام", "إجراءات"],
+        "تحليل نتائج المتعلمين وتشخيص مستواهم": ["تحليل", "تشخيص", "مستوى", "ضعف"],
+        "تنويع أساليب التقويم": ["اختبار", "تقييم", "أوراق عمل", "مقابلة", "ذاتية"]
+    }
+
+    rows = ""
+    total_score = 0
+    for i, elem in enumerate(REQUIRED_ELEMENTS):
+        score = sum([1 for word in KEYWORDS.get(elem, []) if word in input_text])
+        score = min(score, 5) if score > 0 else 1
+        weight = weights[i]
+        percent = (score / 5) * 100
+        total_score += (percent * weight) / 100
+        status = "ممتاز" if score == 5 else "جيد جدًا" if score == 4 else "مقبول" if score == 3 else "ضعيف"
+        color = "#d4edda" if score >= 4 else "#fff3cd" if score == 3 else "#f8d7da"
+        note = "تم رصد إشارات مباشرة" if score > 1 else "البيانات غير كافية"
+
+        rows += f"<tr style='background:{color};'><td>{elem}</td><td>{score} من 5</td><td>{status}</td><td>{note}</td></tr>"
+
+    final_score_5 = round((total_score / sum(weights)) * 5, 2)
+    percent_score = int((total_score / sum(weights)) * 100)
+
+    return f"""
+    <div dir='rtl'>
+        <h3 style='color:#2c3e50;'>النتائج التقديرية (تحليل بالكلمات المفتاحية)</h3>
+        <table style='width:100%; border-collapse:collapse; margin-top:20px;'>
+            <tr style='background-color:#007bff; color:white;'>
+                <th>العنصر</th>
+                <th>الدرجة</th>
+                <th>الحالة</th>
+                <th>الملاحظات</th>
+            </tr>
+            {rows}
+        </table>
+        <div style='margin-top:30px; font-weight:bold;'>الدرجة النهائية: {final_score_5} من 5 ({percent_score}%)</div>
+    </div>
+    """
+
 def get_analysis_prompt(input_text):
     table_rows = "\n".join(
         f"<tr><td>{elem}</td><td>X من 5</td><td>[تحليل]</td></tr>"
         for elem in REQUIRED_ELEMENTS
     )
-    
     return f"""
 أنت محلل تربوي خبير تتبع إطارًا صارمًا. المطلوب:
 
@@ -72,64 +118,30 @@ def get_analysis_prompt(input_text):
 """
 
 def validate_gpt_response(response_text):
-    missing_elements = []
-    for element in REQUIRED_ELEMENTS:
-        if element not in response_text:
-            missing_elements.append(element)
-    
-    if missing_elements:
-        raise ValueError(f"العناصر الناقصة: {', '.join(missing_elements)}")
-    
-    # التحقق من وجود التقييمات
-    if response_text.count("من 5") < len(REQUIRED_ELEMENTS):
-        raise ValueError("تقييمات ناقصة")
-    
+    missing = [e for e in REQUIRED_ELEMENTS if e not in response_text]
+    if missing or response_text.count("من 5") < len(REQUIRED_ELEMENTS):
+        raise ValueError("التحليل غير مكتمل")
     return response_text
-
-def generate_fallback_response():
-    table_rows = "\n".join(
-        f"<tr><td>{elem}</td><td>غير محدد</td><td>بيانات غير كافية</td></tr>"
-        for elem in REQUIRED_ELEMENTS
-    )
-    
-    return f"""
-    <div style='color: #dc3545; padding: 15px; border: 1px solid #f5c6cb; background-color: #f8d7da; border-radius: 5px;'>
-        <h3>⚠️ حدث خطأ في التحليل</h3>
-        <p>تعذر تحليل النص بشكل كامل. الجدول التالي يحتوي على القيم الافتراضية:</p>
-        <table dir='rtl' style='width:100%; margin-top:15px; border-collapse: collapse;'>
-            <tr style='background-color: #007bff; color: white;'>
-                <th>العنصر</th><th>الدرجة</th><th>الملاحظات</th>
-            </tr>
-            {table_rows}
-        </table>
-    </div>
-    """
 
 def process_with_gpt(input_text, max_retries=3):
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
                 model="gpt-4",
-                messages=[{
-                    "role": "user",
-                    "content": get_analysis_prompt(input_text)
-                }],
+                messages=[{"role": "user", "content": get_analysis_prompt(input_text)}],
                 temperature=0.2,
                 max_tokens=2500
             )
-            
             content = response.choices[0].message.content
-            validated_content = validate_gpt_response(content)
-            return calculate_final_score_from_table(validated_content)
-            
+            validated = validate_gpt_response(content)
+            return calculate_final_score_from_table(validated)
         except Exception as e:
-            logger.error(f"المحاولة {attempt+1} فشلت: {str(e)}")
+            logger.error(f"GPT فشل المحاولة {attempt+1}: {e}")
             if attempt == max_retries - 1:
-                logger.error("فشل جميع المحاولات، استخدام النتيجة الاحتياطية")
-                return generate_fallback_response()
+                logger.warning("تشغيل التحليل اليدوي بالكلمات المفتاحية")
+                return analyze_with_keywords(input_text)
             time.sleep(1)
 
-# باقي الدوال الأصلية (بدون تعديل)
 def extract_text_from_image_ocr_space(image_file):
     try:
         response = requests.post(
@@ -163,88 +175,6 @@ def extract_text_from_pdf(pdf_path):
         logger.error(f"PDF Processing Error: {e}")
         return "", 0
 
-def generate_progress_bar(percent):
-    return f"""
-    <div style='background:#eee; border-radius:10px; overflow:hidden; margin-top:10px;'>
-      <div style='width:{percent}%; background:#2ecc71; padding:10px; color:white; text-align:center;'>
-        {percent}%
-      </div>
-    </div>
-    """
-
-def calculate_final_score_from_table(gpt_response):
-    weights = [10, 10, 10, 10, 10, 10, 10, 5, 5, 10, 10]
-    
-    try:
-        scores = re.findall(r'<td>(\d+)\s*من 5</td>', gpt_response)
-        scores = [int(score) for score in scores][:len(REQUIRED_ELEMENTS)]
-        
-        notes = []
-        for i in range(1, len(REQUIRED_ELEMENTS)+1):
-            pattern = rf"العنصر {i}:.*?-\s*نقاط القوة:\s*(.*?)\s*-\s*مجالات التحسين:\s*(.*?)\s*-\s*المقترحات:\s*(.*?)(?=\n\n|$)"
-            match = re.search(pattern, gpt_response, re.DOTALL)
-            notes.append({
-                'strengths': match.group(1).strip() if match else "لا توجد ملاحظة",
-                'improvements': match.group(2).strip() if match else "لا توجد ملاحظة",
-                'suggestions': match.group(3).strip() if match else "لا توجد ملاحظة"
-            })
-
-        total_score = 0
-        rows = ""
-        
-        for i in range(len(REQUIRED_ELEMENTS)):
-            score = scores[i] if i < len(scores) else 1
-            weight = weights[i]
-            note = notes[i]
-            
-            status = "ممتاز" if score == 5 else "جيد جدًا" if score == 4 else "مقبول" if score == 3 else "ضعيف"
-            color = "#d4edda" if score >= 4 else "#fff3cd" if score == 3 else "#f8d7da"
-            
-            rows += f"""
-            <tr style='background:{color};'>
-                <td>{REQUIRED_ELEMENTS[i]}</td>
-                <td>{score} من 5</td>
-                <td>{status}</td>
-                <td>
-                    <strong>نقاط القوة:</strong> {note['strengths']}<br>
-                    <strong>مجالات التحسين:</strong> {note['improvements']}<br>
-                    <strong>المقترحات:</strong> {note['suggestions']}
-                </td>
-            </tr>
-            """
-            total_score += (score / 5) * weight
-
-        final_score_5 = round((total_score / sum(weights)) * 5, 2)
-        percent_score = int((total_score / sum(weights)) * 100)
-
-        return f"""
-        <div dir='rtl'>
-            <h3 style='color:#2c3e50;'>نتائج التحليل</h3>
-            <table style='width:100%; border-collapse:collapse; margin-top:20px;'>
-                <tr style='background-color:#007bff; color:white;'>
-                    <th>العنصر</th>
-                    <th>الدرجة</th>
-                    <th>الحالة</th>
-                    <th>الملاحظات</th>
-                </tr>
-                {rows}
-            </table>
-            
-            <div style='margin-top:30px; padding:15px; background:#f8f9fa; border-radius:5px;'>
-                <h4 style='color:#2c3e50;'>الدرجة النهائية: {final_score_5} من 5 ({percent_score}%)</h4>
-                {generate_progress_bar(percent_score)}
-            </div>
-            
-            <div style='margin-top:20px; padding:15px; background:#e2e3e5; border-radius:5px;'>
-                <h4 style='color:#2c3e50;'>التفاصيل الكاملة:</h4>
-                <div style='white-space:pre-line;'>{gpt_response}</div>
-            </div>
-        </div>
-        """
-    except Exception as e:
-        logger.error(f"Error in score calculation: {e}")
-        return generate_fallback_response()
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -257,14 +187,14 @@ def index():
                 'file_link': request.form.get('file_link', ''),
                 'shahid_text': request.form.get('shahid', '')
             }
-            
+
             uploaded_files = {
                 'image': request.files.get('image'),
                 'pdf_file': request.files.get('pdf_file')
             }
-            
+
             input_text = form_data['shahid_text']
-            
+
             if not input_text.strip():
                 if uploaded_files['image']:
                     filename = secure_filename(uploaded_files['image'].filename)
@@ -278,30 +208,24 @@ def index():
                     uploaded_files['pdf_file'].save(pdf_path)
                     input_text, _ = extract_text_from_pdf(pdf_path)
                     os.remove(pdf_path)
-            
+
             if input_text.strip():
                 gpt_result = process_with_gpt(input_text)
             else:
                 gpt_result = "<div style='color:red;'>لم يتم تقديم نص للتحليل</div>"
-            
+
             return render_template("index.html",
-                               gpt_result=gpt_result,
-                               teacher_name=form_data['teacher_name'],
-                               job_title=form_data['job_title'],
-                               school=form_data['school'],
-                               principal_name=form_data['principal_name'])
-                               
+                gpt_result=gpt_result,
+                teacher_name=form_data['teacher_name'],
+                job_title=form_data['job_title'],
+                school=form_data['school'],
+                principal_name=form_data['principal_name'])
+
         except Exception as e:
-            logger.error(f"Request processing failed: {e}")
-            return render_template("index.html", 
-                               error_message=f"حدث خطأ: {str(e)}")
-    
+            logger.error(f"فشل أثناء المعالجة: {e}")
+            return render_template("index.html", error_message=f"حدث خطأ: {str(e)}")
+
     return render_template("index.html")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, threaded=True)
-
-
-
-
-
