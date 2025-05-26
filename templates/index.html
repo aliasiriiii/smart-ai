@@ -1,146 +1,170 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>منصة التقييم الذكي</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة التقييم الذكي لشواهد المعلمين</title>
   <style>
     body {
       font-family: 'Tahoma', sans-serif;
-      background: #eef3f7;
+      background: #f4f8fc;
       padding: 20px;
       color: #333;
     }
+
     h1 {
       text-align: center;
       color: #1a5276;
       margin-bottom: 30px;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+
+    form {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
     }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
     label {
       display: block;
-      margin-top: 15px;
+      margin-bottom: 6px;
       font-weight: bold;
     }
-    input[type="text"], textarea {
+
+    input, textarea {
       width: 100%;
-      padding: 12px;
-      margin-top: 5px;
+      padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
       font-size: 15px;
     }
+
     textarea {
       resize: vertical;
+      min-height: 100px;
     }
-    .file-row {
+
+    .file-inputs {
       display: flex;
-      gap: 10px;
-      margin-top: 10px;
+      gap: 15px;
     }
-    input[type="file"] {
+
+    .file-inputs input {
       flex: 1;
     }
+
     button {
-      margin-top: 20px;
-      background: #3498db;
-      color: #fff;
-      padding: 14px;
-      width: 100%;
+      background-color: #3498db;
+      color: white;
+      padding: 12px 20px;
       border: none;
       border-radius: 6px;
+      cursor: pointer;
       font-size: 16px;
       font-weight: bold;
-      cursor: pointer;
     }
+
     button:hover {
-      background: #2c80b4;
+      background-color: #2980b9;
     }
-    .result-box {
-      margin-top: 40px;
-      padding: 25px;
-      background: #fefefe;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-    }
-    .footer-note {
-      font-size: 13px;
-      text-align: center;
-      color: #7f8c8d;
+
+    .ai-note-box {
       margin-top: 30px;
-      border-top: 1px solid #eee;
-      padding-top: 15px;
+      padding: 15px;
+      border: 1px dashed #3498db;
+      background-color: #f0f8ff;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #2c3e50;
+      line-height: 1.8;
     }
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .btn-group button {
-      flex: 1;
-    }
-    .error {
-      color: red;
-      text-align: center;
-      margin-top: 20px;
+
+    @media print {
+      .ai-note-box {
+        display: none;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
-    
-    <form method="POST" enctype="multipart/form-data">
+  <h1>منصة التقييم الذكي لشواهد المعلمين</h1>
+
+  <form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
       <label>اسم المعلم:</label>
-      <input type="text" name="teacher_name" value="{{ teacher_name or '' }}">
+      <input type="text" name="teacher_name" value="{{ teacher_name or '' }}" required />
+    </div>
 
+    <div class="form-group">
       <label>المسمى الوظيفي / التخصص:</label>
-      <input type="text" name="job_title" value="{{ job_title or '' }}">
+      <input type="text" name="job_title" value="{{ job_title or '' }}" required />
+    </div>
 
+    <div class="form-group">
       <label>اسم المدرسة:</label>
-      <input type="text" name="school" value="{{ school or '' }}">
+      <input type="text" name="school" value="{{ school or '' }}" required />
+    </div>
 
+    <div class="form-group">
       <label>اسم القائد:</label>
-      <input type="text" name="principal_name" value="{{ principal_name or '' }}">
+      <input type="text" name="principal_name" value="{{ principal_name or '' }}" />
+    </div>
 
+    <div class="form-group">
       <label>رابط الشاهد (اختياري):</label>
-      <input type="text" name="file_link" value="{{ file_link or '' }}">
+      <input type="text" name="file_link" value="{{ file_link or '' }}" />
+    </div>
 
+    <div class="form-group">
       <label>رفع صورة أو ملف PDF:</label>
-      <div class="file-row">
-        <input type="file" name="image" accept="image/*">
-        <input type="file" name="pdf_file" accept=".pdf">
-      </div>
-
-      <label>أو أدخل الشاهد نصيًا:</label>
-      <textarea name="shahid" rows="6">{{ shahid_text or '' }}</textarea>
-
-      <button type="submit">تحليل الشاهد</button>
-    </form>
-
-    {% if gpt_result %}
-    <div class="result-box">
-      {{ gpt_result|safe }}
-      <div class="btn-group">
-        <button onclick="window.print()" style="background:#27ae60;">طباعة التقرير</button>
-        <button onclick="window.location.reload()" style="background:#bdc3c7;">تحليل جديد</button>
-      </div>
-      <div class="footer-note">
-        تم التحليل باستخدام GPT وتحليل ذكي للكلمات المفتاحية<br>
-        تصميم: الأستاذ علي عسيري – ثانوية الظهران
+      <div class="file-inputs">
+        <input type="file" name="image" accept="image/*" />
+        <input type="file" name="pdf_file" accept=".pdf" />
       </div>
     </div>
-    {% endif %}
 
-    {% if error_message %}
-    <div class="error">{{ error_message }}</div>
-    {% endif %}
+    <div class="form-group">
+      <label>أو أدخل الشاهد نصيًا:</label>
+      <textarea name="shahid">{{ shahid_text or '' }}</textarea>
+    </div>
+
+    <button type="submit">تحليل الشاهد</button>
+  </form>
+
+  {% if gpt_result %}
+    <div class="result-block">
+      {{ gpt_result|safe }}
+    </div>
+  {% endif %}
+
+  {% if error_message %}
+    <div style="background:#f8d7da; color:#721c24; padding:15px; margin-top:20px; border-radius:5px; border:1px solid #f5c6cb;">
+      {{ error_message }}
+    </div>
+  {% endif %}
+
+  <div style="margin-top: 30px;">
+    <button onclick="window.print()" style="background-color:#2ecc71;">طباعة التقرير</button>
+    <button onclick="location.reload()" style="background-color:#95a5a6; margin-right:10px;">إعادة تحليل جديد</button>
   </div>
+
+  <script>
+    // منع الإرسال إذا لم يُدخل المستخدم نص أو يرفع ملف
+    document.querySelector("form").addEventListener("submit", function(e) {
+      const text = document.querySelector("textarea[name='shahid']").value.trim();
+      const image = document.querySelector("input[name='image']").files[0];
+      const pdf = document.querySelector("input[name='pdf_file']").files[0];
+
+      if (!text && !image && !pdf) {
+        e.preventDefault();
+        alert("يرجى إدخال نص الشاهد أو رفع ملف صورة أو PDF.");
+      }
+    });
+  </script>
 </body>
 </html>
