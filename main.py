@@ -8,7 +8,6 @@
     body {
       font-family: 'Tahoma', sans-serif;
       background: #f4f8fc;
-      padding: 20px;
       color: #333;
       line-height: 1.6;
     }
