@@ -3,7 +3,7 @@ import re
 import io
 import time
 import logging
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
 from functools import lru_cache
 
 from flask import Flask, render_template, request
@@ -90,23 +90,30 @@ def optimize_pdf_conversion(pdf_data: bytes) -> list:
     )
 
 # استخراج النص من صورة باستخدام OCR.space
-async def extract_text_from_image_ocr_space(image_file: io.BytesIO) -> str:
+async def extract_text_from_image_ocr_space(image_bytes: bytes, filename: str = "image.jpg") -> str:
+    if not OCR_API_KEY:
+        logger.warning("⚠️ OCR_API_KEY غير موجود")
+        return ""
+
     try:
-        response = await requests.post(
-            'https://api.ocr.space/parse/image',
-            files={'file': image_file},
-            data={
+        def _do_request():
+            files = {'file': (filename, image_bytes)}
+            data = {
                 'apikey': OCR_API_KEY,
                 'language': 'ara',
                 'isOverlayRequired': False,
                 'detectOrientation': True,
                 'scale': True
-            },
-            timeout=15
-        )
+            }
+            return requests.post('https://api.ocr.space/parse/image', files=files, data=data, timeout=30)
+
+        response = await asyncio.to_thread(_do_request)
         result = response.json()
-        if not result['IsErroredOnProcessing']:
-            return result['ParsedResults'][0]['ParsedText'].strip()
+
+        if not result.get('IsErroredOnProcessing', True):
+            parsed = result.get('ParsedResults', [])
+            if parsed and parsed[0].get('ParsedText'):
+                return parsed[0]['ParsedText'].strip()
         return ""
     except Exception as e:
         logger.error(f"OCR Exception: {e}", exc_info=True)
@@ -122,15 +129,19 @@ async def extract_text_from_pdf(pdf_path: str) -> tuple[str, int]:
         total_pages = len(images)
         texts = []
 
-        with ThreadPoolExecutor(max_workers=app.config['THREAD_POOL_WORKERS']) as executor:
-            futures = []
-            for img in images:
+        # تشغيل OCR بشكل متوازٍ مضبوط بعدد THREAD_POOL_WORKERS
+        sem = asyncio.Semaphore(app.config['THREAD_POOL_WORKERS'])
+
+        async def _ocr_one(img: Image.Image, idx: int) -> str:
+            async with sem:
                 img_byte_arr = io.BytesIO()
                 img.save(img_byte_arr, format='JPEG', quality=80)
-                img_byte_arr.seek(0)
-                futures.append(executor.submit(extract_text_from_image_ocr_space, img_byte_arr))
-            for future in futures:
-                texts.append(await future)
+                img_bytes = img_byte_arr.getvalue()
+                return await extract_text_from_image_ocr_space(img_bytes, filename=f"page_{idx+1}.jpg")
+
+        tasks = [_ocr_one(img, i) for i, img in enumerate(images)]
+        results = await asyncio.gather(*tasks)
+        texts.extend(results)
 
         return "\n".join(filter(None, texts)), total_pages
     except Exception as e:
@@ -157,7 +168,10 @@ async def analyze_gpt_response_with_keywords(gpt_text: str) -> str:
     total_weighted_score = 0.0
 
     for i, elem in enumerate(REQUIRED_ELEMENTS):
-        hits = sum(1 for kw in KEYWORDS.get(elem, []) if re.search(rf'\b{kw}\b', gpt_text, re.IGNORECASE))
+        hits = sum(
+            1 for kw in KEYWORDS.get(elem, [])
+            if re.search(rf'\b{re.escape(kw)}\b', gpt_text, re.IGNORECASE)
+        )
         score, status, color, note = calculate_scores(hits)
         weighted_score = (score / MAX_SCORE) * ELEMENT_WEIGHTS[i]
         total_weighted_score += weighted_score
@@ -205,17 +219,18 @@ async def analyze_gpt_response_with_keywords(gpt_text: str) -> str:
 async def process_with_gpt(input_text: str, max_retries: int = 3) -> str:
     for attempt in range(max_retries):
         try:
-            response = await client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    ...
-)
-                messages=[{"role": "user", "content": get_analysis_prompt(input_text)}],
-                temperature=0.3,
-                max_tokens=3000,
-                timeout=60
+            response = await asyncio.to_thread(
+                lambda: client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": get_analysis_prompt(input_text)}],
+                    temperature=0.3,
+                    max_tokens=3000,
+                    timeout=60
+                )
             )
+
             gpt_text = response.choices[0].message.content
-            logger.info(f"تم استلام استجابة GPT-4 بطول {len(gpt_text)} حرف")
+            logger.info(f"تم استلام استجابة GPT بطول {len(gpt_text)} حرف")
             return await analyze_gpt_response_with_keywords(gpt_text)
 
         except Exception as e:
@@ -252,12 +267,18 @@ async def index():
                     filename = secure_filename(uploaded_files['image'].filename)
                     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     uploaded_files['image'].save(path)
-                    input_text = await extract_text_from_image_ocr_space(open(path, 'rb'))
+
+                    with open(path, 'rb') as f:
+                        img_bytes = f.read()
+
+                    input_text = await extract_text_from_image_ocr_space(img_bytes, filename=filename)
                     os.remove(path)
+
                 elif uploaded_files['pdf_file'] and uploaded_files['pdf_file'].filename:
                     filename = secure_filename(uploaded_files['pdf_file'].filename)
                     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     uploaded_files['pdf_file'].save(pdf_path)
+
                     input_text, pages = await extract_text_from_pdf(pdf_path)
                     os.remove(pdf_path)
 
@@ -266,17 +287,20 @@ async def index():
             else:
                 gpt_result = "<div class='error'>لم يتم تقديم نص للتحليل</div>"
 
-            return render_template("index.html",
+            return render_template(
+                "index.html",
                 gpt_result=gpt_result,
                 **form_data,
-                page_count=pages)
+                page_count=pages
+            )
 
         except Exception as e:
             logger.error(f"خطأ في المعالجة: {str(e)}", exc_info=True)
-            return render_template("index.html",
-                error_message=f"حدث خطأ أثناء التحليل: {str(e)}")
+            return render_template("index.html", error_message=f"حدث خطأ أثناء التحليل: {str(e)}")
 
     return render_template("index.html")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, threaded=True)
+    # Render يمرر PORT تلقائياً
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port, threaded=True)
